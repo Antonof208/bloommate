@@ -1,0 +1,220 @@
+.addplant-page {
+  padding: 20px;
+  padding-bottom: 100px;
+  font-family: 'Nunito', sans-serif;
+}
+
+.addplant-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.addplant-back {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--green-dark);
+  display: flex;
+}
+
+.addplant-header h1 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--green-dark);
+}
+
+.addplant-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  border: 2px solid #E5F5EA;
+  border-radius: 16px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.addplant-search-bar input {
+  border: none;
+  outline: none;
+  font-size: 1rem;
+  font-family: inherit;
+  flex: 1;
+  background: transparent;
+}
+
+.addplant-search-icon {
+  color: var(--green-dark);
+  flex-shrink: 0;
+}
+
+.addplant-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.addplant-mascot-small {
+  width: 48px;
+  height: 48px;
+}
+
+.addplant-mascot-large {
+  width: 160px;
+  height: 160px;
+}
+
+.addplant-results {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.addplant-result-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: white;
+  border: 2px solid #E5F5EA;
+  border-radius: 16px;
+  padding: 10px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.1s ease;
+}
+
+.addplant-result-card:hover {
+  border-color: var(--green);
+  transform: translateY(-1px);
+}
+
+.addplant-result-card img {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.addplant-result-noimg {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  background: var(--bg-light, #F0FDF4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.addplant-result-name {
+  font-weight: 700;
+  color: #1A1A1A;
+}
+
+.addplant-result-sci {
+  font-size: 0.85rem;
+  color: #888;
+  font-style: italic;
+}
+
+.addplant-empty {
+  color: #888;
+  text-align: center;
+  margin: 24px 0;
+}
+
+.addplant-error {
+  color: var(--orange);
+  font-weight: 600;
+  margin: 12px 0;
+}
+
+.addplant-manual-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  background: none;
+  border: 2px dashed #CFE9D6;
+  border-radius: 16px;
+  padding: 14px;
+  color: var(--green-dark);
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.addplant-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.addplant-form-image {
+  width: 100%;
+  max-width: 200px;
+  border-radius: 16px;
+  align-self: center;
+  object-fit: cover;
+}
+
+.addplant-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--green-dark);
+}
+
+.addplant-form input {
+  border: 2px solid #E5F5EA;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.addplant-save-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--green);
+  color: white;
+  border: none;
+  border-radius: 16px;
+  padding: 14px;
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.addplant-save-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.addplant-celebrate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 80vh;
+  text-align: center;
+  gap: 16px;
+}
+
+.addplant-celebrate h2 {
+  color: var(--green-dark);
+  font-size: 1.3rem;
+}
