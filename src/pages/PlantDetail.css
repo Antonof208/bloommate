@@ -17,12 +17,55 @@
   cursor: pointer;
   color: var(--green-dark);
   display: flex;
+  flex-shrink: 0;
 }
 
 .plantdetail-header h1 {
   font-size: 1.4rem;
   font-weight: 800;
   color: var(--green-dark);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plantdetail-header-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.plantdetail-icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #E5F5EA;
+  color: var(--green-dark);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.plantdetail-icon-btn:hover {
+  background: #D5EEDD;
+  transform: translateY(-1px);
+}
+
+.plantdetail-icon-btn:active {
+  transform: scale(0.92);
+}
+
+.plantdetail-icon-btn-danger {
+  background: #FDEAEA;
+  color: #E5484D;
+}
+
+.plantdetail-icon-btn-danger:hover {
+  background: #FAD7D7;
 }
 
 .plantdetail-image {
@@ -100,4 +143,141 @@
   text-align: center;
   color: #888;
   margin-top: 40px;
+}
+
+.plantdetail-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.plantdetail-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--green-dark);
+}
+
+.plantdetail-form input {
+  border: 2px solid #E5F5EA;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.plantdetail-save-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--green);
+  color: white;
+  border: none;
+  border-radius: 16px;
+  padding: 14px;
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-top: 8px;
+  box-shadow: 0 4px 0 var(--green-dark);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.plantdetail-save-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 var(--green-dark);
+}
+
+.plantdetail-save-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+  transform: none;
+}
+
+.plantdetail-confirm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 80vh;
+  text-align: center;
+  gap: 6px;
+  padding: 0 24px;
+}
+
+.plantdetail-confirm-mascot {
+  width: 140px;
+  height: 140px;
+  margin-bottom: 8px;
+}
+
+.plantdetail-confirm h2 {
+  color: var(--green-dark);
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.plantdetail-confirm p {
+  color: #888;
+  margin-bottom: 8px;
+}
+
+.plantdetail-confirm-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  width: 100%;
+  max-width: 300px;
+}
+
+.plantdetail-cancel-btn,
+.plantdetail-delete-btn {
+  flex: 1;
+  border: none;
+  border-radius: 18px;
+  padding: 15px;
+  font-weight: 800;
+  font-size: 0.95rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+}
+
+.plantdetail-cancel-btn {
+  background: white;
+  color: var(--green-dark);
+  border: 2px solid #E5F5EA;
+}
+
+.plantdetail-cancel-btn:hover {
+  background: #F0FDF4;
+}
+
+.plantdetail-cancel-btn:active {
+  transform: scale(0.96);
+}
+
+.plantdetail-delete-btn {
+  background: #E5484D;
+  color: white;
+  box-shadow: 0 4px 0 #C53A3E;
+}
+
+.plantdetail-delete-btn:hover {
+  background: #D63E43;
+}
+
+.plantdetail-delete-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #C53A3E;
+}
+
+.plantdetail-cancel-btn:disabled,
+.plantdetail-delete-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+  transform: none;
 }
