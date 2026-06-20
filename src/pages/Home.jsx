@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { IconBell } from '@tabler/icons-react'
+import { IconBell, IconFlame, IconSnowflake } from '@tabler/icons-react'
 import { supabase } from '../lib/supabase'
 import BottomNav from '../components/BottomNav'
 import './Home.css'
@@ -10,10 +10,12 @@ export default function Home({ session }) {
   const [plants, setPlants] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [streak, setStreak] = useState(null)
   const name = session.user.email.split('@')[0]
 
   useEffect(() => {
     fetchPlants()
+    fetchStreak()
   }, [])
 
   async function fetchPlants() {
@@ -33,6 +35,18 @@ export default function Home({ session }) {
     setLoading(false)
   }
 
+  async function fetchStreak() {
+    const { data } = await supabase
+      .from('user_streaks')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .maybeSingle()
+
+    setStreak(data)
+  }
+
+  const currentStreak = streak?.current_streak || 0
+
   return (
     <div className="page">
       <header className="app-header">
@@ -40,9 +54,21 @@ export default function Home({ session }) {
           <p className="header-greeting">Hey {name} 👋</p>
           <h2>My Plants 🌿</h2>
         </div>
-        <button className="btn-icon">
-          <IconBell size={20} />
-        </button>
+        <div className="home-header-right">
+          <div className={`streak-badge ${currentStreak === 0 ? 'is-zero' : ''}`}>
+            <IconFlame size={18} className="streak-flame" />
+            <span>{currentStreak}</span>
+          </div>
+          {streak?.freezes_available > 0 && (
+            <div className="freeze-badge">
+              <IconSnowflake size={16} />
+              <span>{streak.freezes_available}</span>
+            </div>
+          )}
+          <button className="btn-icon">
+            <IconBell size={20} />
+          </button>
+        </div>
       </header>
 
       <main className="content">

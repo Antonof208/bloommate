@@ -67,3 +67,42 @@
   font-size: 0.8rem;
   color: #777;
 }
+
+.home-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.streak-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #FFF1EB;
+  color: var(--orange);
+  border-radius: 14px;
+  padding: 6px 10px;
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+
+.streak-badge.is-zero {
+  background: #F0F0F0;
+  color: #999;
+}
+
+.streak-flame {
+  color: inherit;
+}
+
+.freeze-badge {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: #EAF6FF;
+  color: #3B9EDB;
+  border-radius: 14px;
+  padding: 6px 8px;
+  font-weight: 800;
+  font-size: 0.85rem;
+}

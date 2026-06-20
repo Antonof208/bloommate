@@ -27,3 +27,11 @@ export function formatRelativeDay(dateString) {
 export function formatTime(dateString) {
   return new Date(dateString).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
 }
+
+export function getLocalDateString(date = new Date()) {
+  const d = new Date(date)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
