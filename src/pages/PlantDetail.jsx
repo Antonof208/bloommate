@@ -1,9 +1,19 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { IconArrowLeft, IconDroplet, IconSun, IconRefresh, IconGauge, IconPencil, IconTrash, IconCheck, IconX } from '@tabler/icons-react'
+import {
+  IconArrowLeft, IconDroplet, IconSun, IconRefresh, IconGauge,
+  IconPencil, IconTrash, IconCheck, IconX, IconLeaf, IconScissors, IconChevronRight
+} from '@tabler/icons-react'
 import { supabase } from '../lib/supabase'
-import './PlantDetail.css'
+import { formatRelativeDay, formatTime, isToday } from '../lib/dateUtils'
 import sadMascot from '../assets/mascot/sad.png'
+import './PlantDetail.css'
+
+const CARE_ACTIONS = [
+  { key: 'water', label: 'Water', icon: IconDroplet },
+  { key: 'fertilize', label: 'Fertilize', icon: IconLeaf },
+  { key: 'cut', label: 'Cut', icon: IconScissors },
+]
 
 export default function PlantDetail() {
   const { id } = useParams()
@@ -21,8 +31,14 @@ export default function PlantDetail() {
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState(null)
 
+  const [logs, setLogs] = useState([])
+  const [logsLoading, setLogsLoading] = useState(true)
+  const [loggingAction, setLoggingAction] = useState(null)
+  const [logError, setLogError] = useState(null)
+
   useEffect(() => {
     fetchPlant()
+    fetchLogs()
   }, [id])
 
   async function fetchPlant() {
@@ -40,6 +56,40 @@ export default function PlantDetail() {
       setPlant(data)
     }
     setLoading(false)
+  }
+
+  async function fetchLogs() {
+    setLogsLoading(true)
+    const { data, error } = await supabase
+      .from('care_logs')
+      .select('*')
+      .eq('plant_id', id)
+      .order('logged_at', { ascending: false })
+      .limit(30)
+
+    if (!error) setLogs(data)
+    setLogsLoading(false)
+  }
+
+  async function handleLogCare(action) {
+    setLoggingAction(action)
+    setLogError(null)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      const { data, error } = await supabase
+        .from('care_logs')
+        .insert({ plant_id: id, user_id: user.id, action })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      setLogs((prev) => [data, ...prev])
+    } catch (err) {
+      setLogError('Could not log that. Please try again.')
+    } finally {
+      setLoggingAction(null)
+    }
   }
 
   function startEdit() {
@@ -135,33 +185,25 @@ export default function PlantDetail() {
   if (!plant) return null
 
   if (confirmingDelete) {
-  return (
-    <div className="plantdetail-page">
-      <div className="plantdetail-confirm">
-        <img src={sadMascot} alt="BloomMate looking sad" className="plantdetail-confirm-mascot" />
-        <h2>Delete {plant.nickname}?</h2>
-        <p>This can't be undone.</p>
-        {deleteError && <p className="plantdetail-error">{deleteError}</p>}
-        <div className="plantdetail-confirm-actions">
-          <button
-            className="plantdetail-cancel-btn"
-            onClick={() => setConfirmingDelete(false)}
-            disabled={deleting}
-          >
-            Keep it
-          </button>
-          <button
-            className="plantdetail-delete-btn"
-            onClick={handleDelete}
-            disabled={deleting}
-          >
-            {deleting ? 'Deleting...' : 'Delete'}
-          </button>
+    return (
+      <div className="plantdetail-page">
+        <div className="plantdetail-confirm">
+          <img src={sadMascot} alt="BloomMate looking sad" className="plantdetail-confirm-mascot" />
+          <h2>Delete {plant.nickname}?</h2>
+          <p>This can't be undone.</p>
+          {deleteError && <p className="plantdetail-error">{deleteError}</p>}
+          <div className="plantdetail-confirm-actions">
+            <button className="plantdetail-cancel-btn" onClick={() => setConfirmingDelete(false)} disabled={deleting}>
+              Keep it
+            </button>
+            <button className="plantdetail-delete-btn" onClick={handleDelete} disabled={deleting}>
+              {deleting ? 'Deleting...' : 'Delete'}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-  )
-}
+    )
+  }
 
   if (editing) {
     return (
@@ -176,70 +218,31 @@ export default function PlantDetail() {
         <form className="plantdetail-form" onSubmit={handleSaveEdit}>
           <label>
             Nickname *
-            <input
-              type="text"
-              value={form.nickname}
-              onChange={(e) => updateField('nickname', e.target.value)}
-              required
-            />
+            <input type="text" value={form.nickname} onChange={(e) => updateField('nickname', e.target.value)} required />
           </label>
-
           <label>
             Common name
-            <input
-              type="text"
-              value={form.common_name}
-              onChange={(e) => updateField('common_name', e.target.value)}
-            />
+            <input type="text" value={form.common_name} onChange={(e) => updateField('common_name', e.target.value)} />
           </label>
-
           <label>
             Scientific name
-            <input
-              type="text"
-              value={form.scientific_name}
-              onChange={(e) => updateField('scientific_name', e.target.value)}
-            />
+            <input type="text" value={form.scientific_name} onChange={(e) => updateField('scientific_name', e.target.value)} />
           </label>
-
           <label>
             Watering
-            <input
-              type="text"
-              value={form.watering}
-              onChange={(e) => updateField('watering', e.target.value)}
-              placeholder="e.g. Average"
-            />
+            <input type="text" value={form.watering} onChange={(e) => updateField('watering', e.target.value)} placeholder="e.g. Average" />
           </label>
-
           <label>
             Sunlight
-            <input
-              type="text"
-              value={form.sunlight}
-              onChange={(e) => updateField('sunlight', e.target.value)}
-              placeholder="e.g. Full sun"
-            />
+            <input type="text" value={form.sunlight} onChange={(e) => updateField('sunlight', e.target.value)} placeholder="e.g. Full sun" />
           </label>
-
           <label>
             Cycle
-            <input
-              type="text"
-              value={form.cycle}
-              onChange={(e) => updateField('cycle', e.target.value)}
-              placeholder="e.g. Perennial"
-            />
+            <input type="text" value={form.cycle} onChange={(e) => updateField('cycle', e.target.value)} placeholder="e.g. Perennial" />
           </label>
-
           <label>
             Care level
-            <input
-              type="text"
-              value={form.care_level}
-              onChange={(e) => updateField('care_level', e.target.value)}
-              placeholder="e.g. Easy"
-            />
+            <input type="text" value={form.care_level} onChange={(e) => updateField('care_level', e.target.value)} placeholder="e.g. Easy" />
           </label>
 
           {saveError && <p className="plantdetail-error">{saveError}</p>}
@@ -251,6 +254,11 @@ export default function PlantDetail() {
         </form>
       </div>
     )
+  }
+
+  const lastByAction = {}
+  for (const log of logs) {
+    if (!lastByAction[log.action]) lastByAction[log.action] = log
   }
 
   return (
@@ -310,6 +318,71 @@ export default function PlantDetail() {
             <IconGauge size={22} className="plantdetail-care-icon" />
             <p className="plantdetail-care-label">Care level</p>
             <p className="plantdetail-care-value">{plant.care_level}</p>
+          </div>
+        )}
+      </div>
+
+      <h3 className="plantdetail-section-title">Log care</h3>
+      <div className="plantdetail-careactions">
+        {CARE_ACTIONS.map(({ key, label, icon: Icon }) => {
+          const last = lastByAction[key]
+          const doneToday = last && isToday(last.logged_at)
+          const isLogging = loggingAction === key
+          return (
+            <button
+              key={key}
+              className={`plantdetail-careaction-btn ${doneToday ? 'is-done' : ''}`}
+              onClick={() => handleLogCare(key)}
+              disabled={doneToday || isLogging}
+            >
+              {doneToday ? <IconCheck size={22} /> : <Icon size={22} />}
+              <span className="plantdetail-careaction-label">{label}</span>
+              <span className="plantdetail-careaction-sub">
+                {isLogging
+                  ? 'Logging...'
+                  : doneToday
+                  ? 'Done today'
+                  : last
+                  ? `Last: ${formatRelativeDay(last.logged_at)}`
+                  : 'Not logged yet'}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+      {logError && <p className="plantdetail-error">{logError}</p>}
+
+      <div className="plantdetail-activity">
+        <div className="plantdetail-activity-header">
+          <h3>Recent activity</h3>
+          {logs.length > 0 && (
+            <button className="plantdetail-activity-seeall" onClick={() => navigate(`/plant/${id}/history`)}>
+              See all <IconChevronRight size={16} />
+            </button>
+          )}
+        </div>
+
+        {logsLoading ? (
+          <p className="plantdetail-activity-empty">Loading...</p>
+        ) : logs.length === 0 ? (
+          <p className="plantdetail-activity-empty">No activity logged yet.</p>
+        ) : (
+          <div className="plantdetail-activity-list">
+            {logs.slice(0, 5).map((log) => {
+              const meta = CARE_ACTIONS.find((a) => a.key === log.action)
+              const Icon = meta.icon
+              return (
+                <div key={log.id} className="plantdetail-activity-row">
+                  <span className="plantdetail-activity-icon">
+                    <Icon size={16} />
+                  </span>
+                  <span className="plantdetail-activity-label">{meta.label}</span>
+                  <span className="plantdetail-activity-time">
+                    {formatRelativeDay(log.logged_at)} · {formatTime(log.logged_at)}
+                  </span>
+                </div>
+              )
+            })}
           </div>
         )}
       </div>

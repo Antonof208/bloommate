@@ -1,0 +1,81 @@
+.careh-page {
+  padding: 20px;
+  padding-bottom: 100px;
+  font-family: 'Nunito', sans-serif;
+}
+
+.careh-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.careh-back {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--green-dark);
+  display: flex;
+  flex-shrink: 0;
+}
+
+.careh-header h1 {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--green-dark);
+}
+
+.careh-empty {
+  text-align: center;
+  color: #888;
+  margin-top: 40px;
+}
+
+.careh-group {
+  margin-bottom: 18px;
+}
+
+.careh-group-label {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.careh-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  border: 2px solid #E5F5EA;
+  border-radius: 14px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.careh-row-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: #E5F5EA;
+  color: var(--green-dark);
+  flex-shrink: 0;
+}
+
+.careh-row-label {
+  font-weight: 700;
+  color: #1A1A1A;
+  font-size: 0.9rem;
+  flex: 1;
+}
+
+.careh-row-time {
+  font-size: 0.8rem;
+  color: #888;
+}

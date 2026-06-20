@@ -281,3 +281,133 @@
   cursor: default;
   transform: none;
 }
+
+.plantdetail-section-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--green-dark);
+  margin: 24px 0 12px;
+}
+
+.plantdetail-careactions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.plantdetail-careaction-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: white;
+  border: 2px solid #E5F5EA;
+  border-radius: 16px;
+  padding: 14px 8px;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--green-dark);
+  transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease;
+}
+
+.plantdetail-careaction-btn:hover:not(:disabled) {
+  border-color: var(--green);
+  transform: translateY(-1px);
+}
+
+.plantdetail-careaction-btn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.plantdetail-careaction-btn:disabled {
+  cursor: default;
+}
+
+.plantdetail-careaction-btn.is-done {
+  background: #E5F5EA;
+  border-color: var(--green);
+}
+
+.plantdetail-careaction-label {
+  font-weight: 800;
+  font-size: 0.85rem;
+}
+
+.plantdetail-careaction-sub {
+  font-size: 0.68rem;
+  color: #888;
+  text-align: center;
+}
+
+.plantdetail-activity {
+  margin-top: 24px;
+}
+
+.plantdetail-activity-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.plantdetail-activity-header h3 {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--green-dark);
+}
+
+.plantdetail-activity-seeall {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  color: var(--green-dark);
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 4px;
+}
+
+.plantdetail-activity-empty {
+  color: #888;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.plantdetail-activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.plantdetail-activity-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  border: 2px solid #E5F5EA;
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+
+.plantdetail-activity-icon {
+  display: flex;
+  color: var(--green-dark);
+  flex-shrink: 0;
+}
+
+.plantdetail-activity-label {
+  font-weight: 700;
+  color: #1A1A1A;
+  font-size: 0.9rem;
+  flex: 1;
+}
+
+.plantdetail-activity-time {
+  font-size: 0.78rem;
+  color: #888;
+  flex-shrink: 0;
+}
