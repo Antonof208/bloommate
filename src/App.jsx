@@ -5,6 +5,7 @@ import Auth from './pages/Auth'
 import Home from './pages/Home'
 import AddPlant from './pages/AddPlant'
 import PlantDetail from './pages/PlantDetail'
+import CareHistory from './pages/CareHistory'
 
 function App() {
   const [session, setSession] = useState(null)
@@ -38,6 +39,7 @@ function App() {
         <Route path="/" element={session ? <Home session={session} /> : <Navigate to="/auth" />} />
         <Route path="/add" element={session ? <AddPlant /> : <Navigate to="/auth" />} />
         <Route path="/plant/:id" element={session ? <PlantDetail /> : <Navigate to="/auth" />} />
+        <Route path="/plant/:id/history" element={session ? <CareHistory /> : <Navigate to="/auth" />} />
       </Routes>
     </BrowserRouter>
   )
