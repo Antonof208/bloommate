@@ -5,7 +5,7 @@ import {
   IconPencil, IconTrash, IconCheck, IconX, IconLeaf, IconScissors, IconChevronRight
 } from '@tabler/icons-react'
 import { supabase } from '../lib/supabase'
-import { formatRelativeDay, formatTime, isToday } from '../lib/dateUtils'
+import { formatRelativeDay, formatTime, isToday, getLocalDateString } from '../lib/dateUtils'
 import sadMascot from '../assets/mascot/sad.png'
 import './PlantDetail.css'
 
@@ -72,25 +72,28 @@ export default function PlantDetail() {
   }
 
   async function handleLogCare(action) {
-    setLoggingAction(action)
-    setLogError(null)
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      const { data, error } = await supabase
-        .from('care_logs')
-        .insert({ plant_id: id, user_id: user.id, action })
-        .select()
-        .single()
+  setLoggingAction(action)
+  setLogError(null)
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data, error } = await supabase
+      .from('care_logs')
+      .insert({ plant_id: id, user_id: user.id, action })
+      .select()
+      .single()
 
-      if (error) throw error
+    if (error) throw error
 
-      setLogs((prev) => [data, ...prev])
-    } catch (err) {
-      setLogError('Could not log that. Please try again.')
-    } finally {
-      setLoggingAction(null)
-    }
+    setLogs((prev) => [data, ...prev])
+
+    const { error: streakError } = await supabase.rpc('bump_streak', { p_today: getLocalDateString() })
+    if (streakError) console.error('Streak update failed:', streakError)
+  } catch (err) {
+    setLogError('Could not log that. Please try again.')
+  } finally {
+    setLoggingAction(null)
   }
+}
 
   function startEdit() {
     setForm({
