@@ -106,3 +106,15 @@
   font-weight: 800;
   font-size: 0.85rem;
 }
+
+.btn-icon.is-active {
+  color: var(--green);
+}
+
+.home-push-message {
+  text-align: center;
+  font-weight: 700;
+  color: var(--green-dark);
+  font-size: 0.85rem;
+  margin-bottom: 8px;
+}

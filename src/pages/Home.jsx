@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { IconBell, IconFlame, IconSnowflake } from '@tabler/icons-react'
+import { IconBell, IconBellRinging, IconFlame, IconSnowflake } from '@tabler/icons-react'
 import { supabase } from '../lib/supabase'
+import { registerServiceWorker, subscribeToPush, isSubscribed } from '../lib/push'
 import BottomNav from '../components/BottomNav'
 import './Home.css'
 
@@ -11,11 +12,16 @@ export default function Home({ session }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [streak, setStreak] = useState(null)
+  const [pushEnabled, setPushEnabled] = useState(false)
+  const [pushBusy, setPushBusy] = useState(false)
+  const [pushMessage, setPushMessage] = useState(null)
   const name = session.user.email.split('@')[0]
 
   useEffect(() => {
     fetchPlants()
     fetchStreak()
+    registerServiceWorker()
+    isSubscribed().then(setPushEnabled)
   }, [])
 
   async function fetchPlants() {
@@ -45,6 +51,27 @@ export default function Home({ session }) {
     setStreak(data)
   }
 
+  async function handleBellClick() {
+    if (pushEnabled) {
+      setPushMessage('Reminders are already on for this browser 🔔')
+      setTimeout(() => setPushMessage(null), 3000)
+      return
+    }
+
+    setPushBusy(true)
+    setPushMessage(null)
+    try {
+      await subscribeToPush(session.user.id)
+      setPushEnabled(true)
+      setPushMessage('Notifications enabled! 🎉')
+    } catch (err) {
+      setPushMessage(err.message || 'Could not enable notifications.')
+    } finally {
+      setPushBusy(false)
+      setTimeout(() => setPushMessage(null), 4000)
+    }
+  }
+
   const currentStreak = streak?.current_streak || 0
 
   return (
@@ -65,11 +92,17 @@ export default function Home({ session }) {
               <span>{streak.freezes_available}</span>
             </div>
           )}
-          <button className="btn-icon">
-            <IconBell size={20} />
+          <button
+            className={`btn-icon ${pushEnabled ? 'is-active' : ''}`}
+            onClick={handleBellClick}
+            disabled={pushBusy}
+          >
+            {pushEnabled ? <IconBellRinging size={20} /> : <IconBell size={20} />}
           </button>
         </div>
       </header>
+
+      {pushMessage && <p className="home-push-message">{pushMessage}</p>}
 
       <main className="content">
         {loading ? (
