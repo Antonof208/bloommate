@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   IconArrowLeft, IconDroplet, IconSun, IconRefresh, IconGauge,
-  IconPencil, IconTrash, IconCheck, IconX, IconLeaf, IconScissors, IconChevronRight
+  IconPencil, IconTrash, IconCheck, IconX, IconLeaf, IconScissors,
+  IconChevronRight, IconBell, IconBellOff
 } from '@tabler/icons-react'
 import { supabase } from '../lib/supabase'
 import { formatRelativeDay, formatTime, isToday, getLocalDateString } from '../lib/dateUtils'
@@ -14,6 +15,19 @@ const CARE_ACTIONS = [
   { key: 'fertilize', label: 'Fertilize', icon: IconLeaf },
   { key: 'cut', label: 'Cut', icon: IconScissors },
 ]
+
+const WATERING_TO_DAYS = {
+  'frequent': 1,
+  'average': 3,
+  'minimum': 7,
+  'none': null,
+}
+
+function defaultFrequencyDays(wateringText) {
+  if (!wateringText) return 3
+  const key = wateringText.toLowerCase().trim()
+  return WATERING_TO_DAYS[key] ?? 3
+}
 
 export default function PlantDetail() {
   const { id } = useParams()
@@ -35,6 +49,8 @@ export default function PlantDetail() {
   const [logsLoading, setLogsLoading] = useState(true)
   const [loggingAction, setLoggingAction] = useState(null)
   const [logError, setLogError] = useState(null)
+
+  const [reminderSaving, setReminderSaving] = useState(false)
 
   useEffect(() => {
     fetchPlant()
@@ -72,28 +88,71 @@ export default function PlantDetail() {
   }
 
   async function handleLogCare(action) {
-  setLoggingAction(action)
-  setLogError(null)
-  try {
-    const { data: { user } } = await supabase.auth.getUser()
+    setLoggingAction(action)
+    setLogError(null)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      const { data, error } = await supabase
+        .from('care_logs')
+        .insert({ plant_id: id, user_id: user.id, action })
+        .select()
+        .single()
+
+      if (error) throw error
+      setLogs((prev) => [data, ...prev])
+
+      const { error: streakError } = await supabase.rpc('bump_streak', { p_today: getLocalDateString() })
+      if (streakError) console.error('Streak update failed:', streakError)
+    } catch (err) {
+      setLogError('Could not log that. Please try again.')
+    } finally {
+      setLoggingAction(null)
+    }
+  }
+
+  async function handleToggleReminder() {
+    if (!plant) return
+    setReminderSaving(true)
+
+    const turningOn = !plant.reminder_enabled
+    const updates = {
+      reminder_enabled: turningOn,
+      reminder_frequency_days: plant.reminder_frequency_days ?? defaultFrequencyDays(plant.watering),
+      reminder_time_hour: plant.reminder_time_hour ?? 8,
+    }
+
     const { data, error } = await supabase
-      .from('care_logs')
-      .insert({ plant_id: id, user_id: user.id, action })
+      .from('plants')
+      .update(updates)
+      .eq('id', id)
       .select()
       .single()
 
-    if (error) throw error
-
-    setLogs((prev) => [data, ...prev])
-
-    const { error: streakError } = await supabase.rpc('bump_streak', { p_today: getLocalDateString() })
-    if (streakError) console.error('Streak update failed:', streakError)
-  } catch (err) {
-    setLogError('Could not log that. Please try again.')
-  } finally {
-    setLoggingAction(null)
+    if (!error) setPlant(data)
+    setReminderSaving(false)
   }
-}
+
+  async function handleReminderTime(hour) {
+    const { data, error } = await supabase
+      .from('plants')
+      .update({ reminder_time_hour: hour })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (!error) setPlant(data)
+  }
+
+  async function handleReminderFrequency(days) {
+    const { data, error } = await supabase
+      .from('plants')
+      .update({ reminder_frequency_days: days })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (!error) setPlant(data)
+  }
 
   function startEdit() {
     setForm({
@@ -136,7 +195,6 @@ export default function PlantDetail() {
         .single()
 
       if (error) throw error
-
       setPlant(data)
       setEditing(false)
     } catch (err) {
@@ -219,34 +277,13 @@ export default function PlantDetail() {
         </div>
 
         <form className="plantdetail-form" onSubmit={handleSaveEdit}>
-          <label>
-            Nickname *
-            <input type="text" value={form.nickname} onChange={(e) => updateField('nickname', e.target.value)} required />
-          </label>
-          <label>
-            Common name
-            <input type="text" value={form.common_name} onChange={(e) => updateField('common_name', e.target.value)} />
-          </label>
-          <label>
-            Scientific name
-            <input type="text" value={form.scientific_name} onChange={(e) => updateField('scientific_name', e.target.value)} />
-          </label>
-          <label>
-            Watering
-            <input type="text" value={form.watering} onChange={(e) => updateField('watering', e.target.value)} placeholder="e.g. Average" />
-          </label>
-          <label>
-            Sunlight
-            <input type="text" value={form.sunlight} onChange={(e) => updateField('sunlight', e.target.value)} placeholder="e.g. Full sun" />
-          </label>
-          <label>
-            Cycle
-            <input type="text" value={form.cycle} onChange={(e) => updateField('cycle', e.target.value)} placeholder="e.g. Perennial" />
-          </label>
-          <label>
-            Care level
-            <input type="text" value={form.care_level} onChange={(e) => updateField('care_level', e.target.value)} placeholder="e.g. Easy" />
-          </label>
+          <label>Nickname *<input type="text" value={form.nickname} onChange={(e) => updateField('nickname', e.target.value)} required /></label>
+          <label>Common name<input type="text" value={form.common_name} onChange={(e) => updateField('common_name', e.target.value)} /></label>
+          <label>Scientific name<input type="text" value={form.scientific_name} onChange={(e) => updateField('scientific_name', e.target.value)} /></label>
+          <label>Watering<input type="text" value={form.watering} onChange={(e) => updateField('watering', e.target.value)} placeholder="e.g. Average" /></label>
+          <label>Sunlight<input type="text" value={form.sunlight} onChange={(e) => updateField('sunlight', e.target.value)} placeholder="e.g. Full sun" /></label>
+          <label>Cycle<input type="text" value={form.cycle} onChange={(e) => updateField('cycle', e.target.value)} placeholder="e.g. Perennial" /></label>
+          <label>Care level<input type="text" value={form.care_level} onChange={(e) => updateField('care_level', e.target.value)} placeholder="e.g. Easy" /></label>
 
           {saveError && <p className="plantdetail-error">{saveError}</p>}
 
@@ -263,6 +300,9 @@ export default function PlantDetail() {
   for (const log of logs) {
     if (!lastByAction[log.action]) lastByAction[log.action] = log
   }
+
+  const reminderHour = plant.reminder_time_hour ?? 8
+  const reminderDays = plant.reminder_frequency_days ?? defaultFrequencyDays(plant.watering)
 
   return (
     <div className="plantdetail-page">
@@ -341,19 +381,65 @@ export default function PlantDetail() {
               {doneToday ? <IconCheck size={22} /> : <Icon size={22} />}
               <span className="plantdetail-careaction-label">{label}</span>
               <span className="plantdetail-careaction-sub">
-                {isLogging
-                  ? 'Logging...'
-                  : doneToday
-                  ? 'Done today'
-                  : last
-                  ? `Last: ${formatRelativeDay(last.logged_at)}`
-                  : 'Not logged yet'}
+                {isLogging ? 'Logging...' : doneToday ? 'Done today' : last ? `Last: ${formatRelativeDay(last.logged_at)}` : 'Not logged yet'}
               </span>
             </button>
           )
         })}
       </div>
       {logError && <p className="plantdetail-error">{logError}</p>}
+
+      {/* Reminder section */}
+      <h3 className="plantdetail-section-title">Watering reminder</h3>
+      <div className="plantdetail-reminder-card">
+        <div className="plantdetail-reminder-row">
+          <div className="plantdetail-reminder-label">
+            {plant.reminder_enabled ? <IconBell size={18} /> : <IconBellOff size={18} />}
+            <span>{plant.reminder_enabled ? 'Reminder on' : 'Reminder off'}</span>
+          </div>
+          <button
+            className={`plantdetail-reminder-toggle ${plant.reminder_enabled ? 'is-on' : ''}`}
+            onClick={handleToggleReminder}
+            disabled={reminderSaving}
+          >
+            <span className="plantdetail-reminder-toggle-knob" />
+          </button>
+        </div>
+
+        {plant.reminder_enabled && (
+          <>
+            <div className="plantdetail-reminder-divider" />
+            <p className="plantdetail-reminder-sublabel">Remind me</p>
+            <div className="plantdetail-reminder-time-btns">
+              <button
+                className={`plantdetail-reminder-time-btn ${reminderHour === 8 ? 'is-selected' : ''}`}
+                onClick={() => handleReminderTime(8)}
+              >
+                🌅 Morning
+              </button>
+              <button
+                className={`plantdetail-reminder-time-btn ${reminderHour === 18 ? 'is-selected' : ''}`}
+                onClick={() => handleReminderTime(18)}
+              >
+                🌆 Evening
+              </button>
+            </div>
+
+            <p className="plantdetail-reminder-sublabel" style={{ marginTop: 12 }}>Every</p>
+            <div className="plantdetail-reminder-freq-btns">
+              {[1, 2, 3, 5, 7, 14].map((d) => (
+                <button
+                  key={d}
+                  className={`plantdetail-reminder-freq-btn ${reminderDays === d ? 'is-selected' : ''}`}
+                  onClick={() => handleReminderFrequency(d)}
+                >
+                  {d === 1 ? 'day' : `${d}d`}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
 
       <div className="plantdetail-activity">
         <div className="plantdetail-activity-header">
@@ -376,13 +462,9 @@ export default function PlantDetail() {
               const Icon = meta.icon
               return (
                 <div key={log.id} className="plantdetail-activity-row">
-                  <span className="plantdetail-activity-icon">
-                    <Icon size={16} />
-                  </span>
+                  <span className="plantdetail-activity-icon"><Icon size={16} /></span>
                   <span className="plantdetail-activity-label">{meta.label}</span>
-                  <span className="plantdetail-activity-time">
-                    {formatRelativeDay(log.logged_at)} · {formatTime(log.logged_at)}
-                  </span>
+                  <span className="plantdetail-activity-time">{formatRelativeDay(log.logged_at)} · {formatTime(log.logged_at)}</span>
                 </div>
               )
             })}
