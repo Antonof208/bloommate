@@ -18,7 +18,7 @@ export default function BottomNav({ active }) {
         <span>Add</span>
       </button>
 
-      <button className={`nav-item ${active === 'wins' ? 'active' : ''}`}>
+      <button className={`nav-item ${active === 'wins' ? 'active' : ''}`} onClick={() => navigate('/wins')}>
         <IconTrophy size={24} />
         <span>Wins</span>
       </button>

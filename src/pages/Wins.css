@@ -1,0 +1,218 @@
+.wins-streak-card {
+  background: white;
+  border: 2px solid #E5F5EA;
+  border-radius: 22px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.wins-streak-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.wins-streak-num {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 3.2rem;
+  font-weight: 900;
+  color: var(--orange);
+  line-height: 1;
+  font-family: 'Nunito', sans-serif;
+}
+
+.wins-flame { color: var(--orange); }
+
+.wins-streak-label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1A1A1A;
+  font-family: 'Nunito', sans-serif;
+}
+
+.wins-streak-best {
+  font-size: 0.82rem;
+  color: #888;
+  font-weight: 600;
+  margin-top: 2px;
+  font-family: 'Nunito', sans-serif;
+}
+
+/* Calendar */
+.wins-cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.wins-cal-title {
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: var(--green-dark);
+  font-family: 'Nunito', sans-serif;
+}
+
+.wins-cal-arrow {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--green-dark);
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 8px;
+  transition: background 0.15s;
+  font-family: 'Nunito', sans-serif;
+}
+.wins-cal-arrow:hover:not(:disabled) { background: #E5F5EA; }
+.wins-cal-arrow:disabled { opacity: 0.25; cursor: default; }
+
+.wins-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.wins-cal-dow {
+  font-size: 0.67rem;
+  font-weight: 800;
+  color: #BBB;
+  text-align: center;
+  text-transform: uppercase;
+  padding: 4px 0;
+  font-family: 'Nunito', sans-serif;
+}
+
+.wins-cal-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #AAA;
+  font-family: 'Nunito', sans-serif;
+}
+
+.wins-cal-empty { visibility: hidden; }
+.wins-cal-future { color: #DDD; }
+
+.wins-cal-active {
+  background: var(--green) !important;
+  color: white !important;
+  font-weight: 800;
+}
+
+.wins-cal-today:not(.wins-cal-active) {
+  background: #E5F5EA;
+  color: var(--green-dark);
+  font-weight: 800;
+}
+
+/* Badges */
+.wins-badges-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--green-dark);
+  margin-bottom: 14px;
+  font-family: 'Nunito', sans-serif;
+}
+
+.wins-loading {
+  color: #888;
+  text-align: center;
+  padding: 20px 0;
+  font-family: 'Nunito', sans-serif;
+}
+
+.wins-badges-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  padding-bottom: 20px;
+}
+
+/* Shield badge */
+.shield-outer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 18px 12px 14px;
+  background: white;
+  border: 2px solid #E5F5EA;
+  border-radius: 20px;
+  gap: 6px;
+  font-family: 'Nunito', sans-serif;
+}
+
+.shield-is-unlocked {
+  border-color: #C5EDD6;
+  background: #FAFFFE;
+}
+
+.shield-inner-wrap {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 6px;
+}
+
+.shield-art-wrap {
+  position: relative;
+  width: 72px;
+}
+
+.shield-art-locked {
+  filter: blur(2px) grayscale(1);
+  opacity: 0.5;
+}
+
+.shield-svg {
+  width: 72px;
+  display: block;
+}
+
+.shield-emoji {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -46%);
+  font-size: 1.85rem;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.shield-lock-overlay {
+  position: absolute;
+  top: 46%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.45);
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shield-name {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--green-dark);
+  line-height: 1.2;
+}
+
+.shield-name-locked { color: #BBBBBB; }
+
+.shield-desc {
+  font-size: 0.72rem;
+  color: #999;
+  line-height: 1.3;
+}
