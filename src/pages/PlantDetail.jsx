@@ -7,7 +7,6 @@ import {
 } from '@tabler/icons-react'
 import { supabase } from '../lib/supabase'
 import { formatRelativeDay, formatTime, isToday, getLocalDateString } from '../lib/dateUtils'
-import { checkNewAchievements } from '../lib/achievements'
 import AchievementToast from '../components/AchievementToast'
 import sadMascot from '../assets/mascot/sad.png'
 import './PlantDetail.css'
