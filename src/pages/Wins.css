@@ -1,218 +1,122 @@
+.wins-loading {
+  display: flex; align-items: center; justify-content: center;
+  height: 60vh; color: #888; font-weight: 700;
+}
+
+/* Streak card */
 .wins-streak-card {
-  background: white;
-  border: 2px solid #E5F5EA;
-  border-radius: 22px;
-  padding: 20px;
-  margin-bottom: 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  background: #FFF1EB; border-radius: 20px; padding: 20px 24px;
+  margin-bottom: 16px;
 }
-
-.wins-streak-top {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 20px;
+.wins-streak-left { display: flex; align-items: center; gap: 14px; }
+.wins-streak-number {
+  font-size: 3.5rem; font-weight: 900; color: var(--orange); line-height: 1;
 }
-
-.wins-streak-num {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 3.2rem;
-  font-weight: 900;
-  color: var(--orange);
-  line-height: 1;
-  font-family: 'Nunito', sans-serif;
-}
-
-.wins-flame { color: var(--orange); }
-
-.wins-streak-label {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #1A1A1A;
-  font-family: 'Nunito', sans-serif;
-}
-
-.wins-streak-best {
-  font-size: 0.82rem;
-  color: #888;
-  font-weight: 600;
-  margin-top: 2px;
-  font-family: 'Nunito', sans-serif;
-}
+.wins-streak-label { font-weight: 800; color: var(--orange); font-size: 1rem; }
+.wins-streak-best { font-size: 0.8rem; color: #B05A2A; margin-top: 2px; }
+.wins-streak-flame { color: var(--orange); flex-shrink: 0; }
 
 /* Calendar */
-.wins-cal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
+.wins-calendar-card {
+  background: white; border: 2px solid #E5F5EA;
+  border-radius: 20px; padding: 16px; margin-bottom: 24px;
 }
-
-.wins-cal-title {
-  font-weight: 800;
-  font-size: 0.9rem;
-  color: var(--green-dark);
-  font-family: 'Nunito', sans-serif;
+.wins-calendar-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;
 }
-
-.wins-cal-arrow {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  line-height: 1;
-  color: var(--green-dark);
-  cursor: pointer;
-  padding: 4px 10px;
-  border-radius: 8px;
-  transition: background 0.15s;
-  font-family: 'Nunito', sans-serif;
+.wins-cal-month { font-weight: 800; color: var(--green-dark); font-size: 0.95rem; }
+.wins-cal-nav {
+  background: none; border: none; cursor: pointer;
+  color: var(--green-dark); display: flex; padding: 4px;
+  border-radius: 8px; transition: background 0.15s;
 }
-.wins-cal-arrow:hover:not(:disabled) { background: #E5F5EA; }
-.wins-cal-arrow:disabled { opacity: 0.25; cursor: default; }
+.wins-cal-nav:hover { background: #E5F5EA; }
+.wins-cal-nav:disabled { opacity: 0.3; cursor: default; }
 
-.wins-cal-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 3px;
+.wins-calendar-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;
 }
-
-.wins-cal-dow {
-  font-size: 0.67rem;
-  font-weight: 800;
-  color: #BBB;
-  text-align: center;
-  text-transform: uppercase;
-  padding: 4px 0;
-  font-family: 'Nunito', sans-serif;
+.wins-cal-dayname {
+  text-align: center; font-size: 0.72rem; font-weight: 800;
+  color: #AAA; padding-bottom: 6px; text-transform: uppercase;
 }
-
 .wins-cal-day {
-  aspect-ratio: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #AAA;
-  font-family: 'Nunito', sans-serif;
+  aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 0.8rem; font-weight: 700; color: #555;
+  border-radius: 50%; transition: background 0.15s;
 }
-
-.wins-cal-empty { visibility: hidden; }
-.wins-cal-future { color: #DDD; }
-
-.wins-cal-active {
-  background: var(--green) !important;
-  color: white !important;
-  font-weight: 800;
+.wins-cal-day.has-log {
+  background: var(--green); color: white;
 }
-
-.wins-cal-today:not(.wins-cal-active) {
-  background: #E5F5EA;
+.wins-cal-day.is-today {
+  border: 2px solid var(--green-dark);
   color: var(--green-dark);
-  font-weight: 800;
+}
+.wins-cal-day.has-log.is-today {
+  border-color: var(--green-dark);
 }
 
-/* Badges */
-.wins-badges-title {
-  font-size: 1.05rem;
-  font-weight: 800;
-  color: var(--green-dark);
-  margin-bottom: 14px;
-  font-family: 'Nunito', sans-serif;
+/* Achievements section */
+.wins-section-title {
+  font-size: 1rem; font-weight: 800; color: var(--green-dark); margin-bottom: 4px;
+}
+.wins-section-sub {
+  font-size: 0.82rem; color: #AAA; font-weight: 700; margin-bottom: 16px;
+}
+.wins-achievements-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;
+  padding-bottom: 8px;
+}
+.wins-badge {
+  display: flex; flex-direction: column; align-items: center;
+  background: white; border: 2px solid #E5F5EA; border-radius: 18px;
+  padding: 16px 12px; text-align: center; gap: 6px;
+}
+.wins-badge.is-locked { opacity: 0.6; }
+
+.wins-badge-img-wrap {
+  position: relative; width: 80px; height: 80px;
+}
+.wins-badge-img {
+  width: 80px; height: 80px; object-fit: contain;
+}
+.wins-badge.is-locked .wins-badge-img {
+  filter: grayscale(100%);
+}
+.wins-badge-lock-overlay {
+  position: absolute; inset: 0;
+  background: rgba(0, 0, 0, 0.35); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.wins-badge-name {
+  font-weight: 800; color: #1A1A1A; font-size: 0.85rem; margin-top: 4px;
+}
+.wins-badge-desc {
+  font-size: 0.72rem; color: #888; line-height: 1.3;
 }
 
-.wins-loading {
-  color: #888;
-  text-align: center;
-  padding: 20px 0;
-  font-family: 'Nunito', sans-serif;
+/* Toast */
+.achievement-toast {
+  position: fixed; bottom: 90px; left: 50%;
+  transform: translateX(-50%) translateY(140px);
+  background: white; border: 2px solid var(--green);
+  border-radius: 18px; padding: 12px 16px;
+  display: flex; align-items: center; gap: 12px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+  z-index: 999;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  min-width: 260px; max-width: 88vw;
 }
-
-.wins-badges-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 14px;
-  padding-bottom: 20px;
+.achievement-toast.is-visible {
+  transform: translateX(-50%) translateY(0);
 }
-
-/* Shield badge */
-.shield-outer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 18px 12px 14px;
-  background: white;
-  border: 2px solid #E5F5EA;
-  border-radius: 20px;
-  gap: 6px;
-  font-family: 'Nunito', sans-serif;
+.achievement-toast-img {
+  width: 48px; height: 48px; object-fit: contain; flex-shrink: 0;
 }
-
-.shield-is-unlocked {
-  border-color: #C5EDD6;
-  background: #FAFFFE;
+.achievement-toast-label {
+  font-size: 0.75rem; font-weight: 700; color: var(--green-dark);
 }
-
-.shield-inner-wrap {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  margin-bottom: 6px;
-}
-
-.shield-art-wrap {
-  position: relative;
-  width: 72px;
-}
-
-.shield-art-locked {
-  filter: blur(2px) grayscale(1);
-  opacity: 0.5;
-}
-
-.shield-svg {
-  width: 72px;
-  display: block;
-}
-
-.shield-emoji {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -46%);
-  font-size: 1.85rem;
-  line-height: 1;
-  pointer-events: none;
-}
-
-.shield-lock-overlay {
-  position: absolute;
-  top: 46%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(0, 0, 0, 0.45);
-  border-radius: 50%;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.shield-name {
-  font-size: 0.88rem;
-  font-weight: 800;
-  color: var(--green-dark);
-  line-height: 1.2;
-}
-
-.shield-name-locked { color: #BBBBBB; }
-
-.shield-desc {
-  font-size: 0.72rem;
-  color: #999;
-  line-height: 1.3;
+.achievement-toast-name {
+  font-size: 1rem; font-weight: 900; color: #1A1A1A;
 }

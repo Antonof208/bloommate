@@ -1,61 +1,85 @@
 import { supabase } from './supabase'
 
+import firstLeafImg from '../assets/achievements/first-leaf.png'
+import plantParentImg from '../assets/achievements/plant-parent.png'
+import collectorImg from '../assets/achievements/collector.png'
+import jungleModeImg from '../assets/achievements/jungle-mode.png'
+import firstDropImg from '../assets/achievements/first-drop.png'
+import snipSnipImg from '../assets/achievements/snip-snip.png'
+import diligentImg from '../assets/achievements/diligent.png'
+import earlyBirdImg from '../assets/achievements/early-bird.png'
+import nightOwlImg from '../assets/achievements/night-owl.png'
+import hotStartImg from '../assets/achievements/hot-start.png'
+import weekWarriorImg from '../assets/achievements/week-warrior.png'
+import streakMasterImg from '../assets/achievements/streak-master.png'
+import legendImg from '../assets/achievements/legend.png'
+import bloomCamImg from '../assets/achievements/bloom-cam.png'
+
 export const ACHIEVEMENTS = [
-  { id: 'first_leaf',     name: 'First Leaf',     description: 'Added your first plant',      emoji: '🌱', color: '#3DCC78', darkColor: '#2AA862' },
-  { id: 'first_drop',     name: 'First Drop',     description: 'Logged your first watering',  emoji: '💧', color: '#4AADE8', darkColor: '#2980B9' },
-  { id: 'snip_snip',      name: 'Snip Snip',      description: 'Logged your first cut',        emoji: '✂️', color: '#A855F7', darkColor: '#7C3AED' },
-  { id: 'collector',      name: 'Collector',      description: 'Own 5 plants',                 emoji: '🌿', color: '#2AA862', darkColor: '#1A7A46' },
-  { id: 'week_warrior',   name: 'Week Warrior',   description: 'Reached a 7-day streak',       emoji: '🔥', color: '#FF6B35', darkColor: '#CC4A1A' },
-  { id: 'diligent',       name: 'Diligent',       description: 'Logged 20 care actions',       emoji: '📋', color: '#0EA5E9', darkColor: '#0369A1' },
-  { id: 'streak_master',  name: 'Streak Master',  description: 'Reached a 30-day streak',      emoji: '🏆', color: '#EAB308', darkColor: '#A16207' },
-  { id: 'bloom_cam',      name: 'Bloom Cam',      description: 'Took a photo of your plant',   emoji: '📸', color: '#EC4899', darkColor: '#BE185D', comingSoon: true },
+  { key: 'first-leaf',     name: 'First Leaf',     description: 'Add your first plant',      image: firstLeafImg },
+  { key: 'plant-parent',   name: 'Plant Parent',   description: 'Add 3 plants',               image: plantParentImg },
+  { key: 'collector',      name: 'Collector',      description: 'Own 5 plants',               image: collectorImg },
+  { key: 'jungle-mode',    name: 'Jungle Mode',    description: 'Own 10 plants',              image: jungleModeImg },
+  { key: 'first-drop',     name: 'First Drop',     description: 'Log your first watering',    image: firstDropImg },
+  { key: 'snip-snip',      name: 'Snip Snip',      description: 'Log your first cut',         image: snipSnipImg },
+  { key: 'diligent',       name: 'Diligent',       description: 'Log 20 care actions',        image: diligentImg },
+  { key: 'early-bird',     name: 'Early Bird',     description: 'Log care before 7am',        image: earlyBirdImg },
+  { key: 'night-owl',      name: 'Night Owl',      description: 'Log care after 10pm',        image: nightOwlImg },
+  { key: 'hot-start',      name: 'Hot Start',      description: 'Reach a 3-day streak',       image: hotStartImg },
+  { key: 'week-warrior',   name: 'Week Warrior',   description: 'Reach a 7-day streak',       image: weekWarriorImg },
+  { key: 'streak-master',  name: 'Streak Master',  description: 'Reach a 30-day streak',      image: streakMasterImg },
+  { key: 'legend',         name: 'Legend',         description: 'Reach a 100-day streak',     image: legendImg },
+  { key: 'bloom-cam',      name: 'Bloom Cam',      description: 'Take a photo of your plant', image: bloomCamImg, phase3: true },
 ]
 
-export function getSeenAchievements() {
+export async function checkAndUnlockAchievements(userId) {
   try {
-    return new Set(JSON.parse(localStorage.getItem('bloommate_seen_achievements') || '[]'))
-  } catch {
-    return new Set()
+    const { data: existing } = await supabase
+      .from('user_achievements')
+      .select('achievement_key')
+      .eq('user_id', userId)
+
+    const alreadyUnlocked = new Set((existing || []).map(r => r.achievement_key))
+
+    const [{ data: plants }, { data: logs }, { data: streak }] = await Promise.all([
+      supabase.from('plants').select('id').eq('user_id', userId),
+      supabase.from('care_logs').select('action, logged_at').eq('user_id', userId),
+      supabase.from('user_streaks').select('current_streak, longest_streak').eq('user_id', userId).maybeSingle(),
+    ])
+
+    const plantCount = plants?.length || 0
+    const allLogs = logs || []
+    const bestStreak = Math.max(streak?.current_streak || 0, streak?.longest_streak || 0)
+    const toUnlock = []
+
+    const check = (key, condition) => {
+      if (condition && !alreadyUnlocked.has(key)) toUnlock.push(key)
+    }
+
+    check('first-leaf',    plantCount >= 1)
+    check('plant-parent',  plantCount >= 3)
+    check('collector',     plantCount >= 5)
+    check('jungle-mode',   plantCount >= 10)
+    check('first-drop',    allLogs.some(l => l.action === 'water'))
+    check('snip-snip',     allLogs.some(l => l.action === 'cut'))
+    check('diligent',      allLogs.length >= 20)
+    check('early-bird',    allLogs.some(l => new Date(l.logged_at).getHours() < 7))
+    check('night-owl',     allLogs.some(l => new Date(l.logged_at).getHours() >= 22))
+    check('hot-start',     bestStreak >= 3)
+    check('week-warrior',  bestStreak >= 7)
+    check('streak-master', bestStreak >= 30)
+    check('legend',        bestStreak >= 100)
+    // bloom-cam: unlocked manually in Phase 3
+
+    if (toUnlock.length > 0) {
+      await supabase.from('user_achievements').insert(
+        toUnlock.map(key => ({ user_id: userId, achievement_key: key }))
+      )
+    }
+
+    return toUnlock
+  } catch (err) {
+    console.error('Achievement check failed:', err)
+    return []
   }
-}
-
-export function markAchievementsSeen(ids) {
-  const seen = getSeenAchievements()
-  ids.forEach((id) => seen.add(id))
-  localStorage.setItem('bloommate_seen_achievements', JSON.stringify([...seen]))
-}
-
-export async function computeUnlockedIds(userId) {
-  const [{ data: plants }, { data: careLogs }, { data: streak }] = await Promise.all([
-    supabase.from('plants').select('id').eq('user_id', userId),
-    supabase.from('care_logs').select('action').eq('user_id', userId),
-    supabase.from('user_streaks').select('longest_streak').eq('user_id', userId).maybeSingle(),
-  ])
-  const plantCount = plants?.length || 0
-  const logs = careLogs || []
-  const longestStreak = streak?.longest_streak || 0
-  const unlocked = new Set()
-  if (plantCount >= 1) unlocked.add('first_leaf')
-  if (logs.some((l) => l.action === 'water')) unlocked.add('first_drop')
-  if (logs.some((l) => l.action === 'cut')) unlocked.add('snip_snip')
-  if (plantCount >= 5) unlocked.add('collector')
-  if (longestStreak >= 7) unlocked.add('week_warrior')
-  if (logs.length >= 20) unlocked.add('diligent')
-  if (longestStreak >= 30) unlocked.add('streak_master')
-  return unlocked
-}
-
-export async function initAchievements(userId) {
-  if (localStorage.getItem('bloommate_achievements_initialized')) return
-  const unlocked = await computeUnlockedIds(userId)
-  markAchievementsSeen([...unlocked])
-  localStorage.setItem('bloommate_achievements_initialized', '1')
-}
-
-export async function checkNewAchievements(userId) {
-  const unlocked = await computeUnlockedIds(userId)
-  const seen = getSeenAchievements()
-  const newIds = [...unlocked].filter((id) => !seen.has(id))
-  if (newIds.length > 0) markAchievementsSeen(newIds)
-  return newIds.map((id) => ACHIEVEMENTS.find((a) => a.id === id)).filter(Boolean)
 }
