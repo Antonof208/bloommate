@@ -1,9 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { IconUserCircle, IconPencil, IconCheck, IconX, IconMoon, IconSun, IconLogout } from '@tabler/icons-react'
+import { IconUserCircle, IconPencil, IconCheck, IconX, IconLogout } from '@tabler/icons-react'
 import { supabase } from '../lib/supabase'
 import BottomNav from '../components/BottomNav'
 import './Profile.css'
+
+function formatMemberSince(dateString) {
+  const date = new Date(dateString)
+  return date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+}
 
 export default function Profile({ session }) {
   const navigate = useNavigate()
@@ -12,16 +17,11 @@ export default function Profile({ session }) {
   const [nameInput, setNameInput] = useState('')
   const [savingName, setSavingName] = useState(false)
   const [nameError, setNameError] = useState(null)
-  const [darkMode, setDarkMode] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
 
   useEffect(() => {
     const metaName = session.user.user_metadata?.display_name
     setDisplayName(metaName || session.user.email.split('@')[0])
-
-    const savedTheme = localStorage.getItem('bloommate-theme')
-    const isDark = savedTheme === 'dark'
-    setDarkMode(isDark)
   }, [session])
 
   function startEditName() {
@@ -46,18 +46,6 @@ export default function Profile({ session }) {
       setNameError('Could not save your name. Please try again.')
     } finally {
       setSavingName(false)
-    }
-  }
-
-  function handleToggleDarkMode() {
-    const newValue = !darkMode
-    setDarkMode(newValue)
-    if (newValue) {
-      document.documentElement.setAttribute('data-theme', 'dark')
-      localStorage.setItem('bloommate-theme', 'dark')
-    } else {
-      document.documentElement.removeAttribute('data-theme')
-      localStorage.setItem('bloommate-theme', 'light')
     }
   }
 
@@ -107,21 +95,7 @@ export default function Profile({ session }) {
           )}
           {nameError && <p className="profile-error">{nameError}</p>}
           <p className="profile-email">{session.user.email}</p>
-        </div>
-
-        <div className="profile-section">
-          <p className="profile-section-title">Settings</p>
-          <div className="profile-card">
-            <div className="profile-row">
-              <div className="profile-row-label">
-                {darkMode ? <IconMoon size={20} /> : <IconSun size={20} />}
-                <span>Dark mode</span>
-              </div>
-              <button className={`profile-toggle ${darkMode ? 'is-on' : ''}`} onClick={handleToggleDarkMode}>
-                <span className="profile-toggle-knob" />
-              </button>
-            </div>
-          </div>
+          <p className="profile-since">🌱 Blooming since {formatMemberSince(session.user.created_at)}</p>
         </div>
 
         <div className="profile-section">

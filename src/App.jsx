@@ -6,6 +6,7 @@ import Home from './pages/Home'
 import AddPlant from './pages/AddPlant'
 import PlantDetail from './pages/PlantDetail'
 import CareHistory from './pages/CareHistory'
+import Wins from './pages/Wins'
 import Profile from './pages/Profile'
 
 function App() {
@@ -13,11 +14,6 @@ function App() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('bloommate-theme')
-    if (savedTheme === 'dark') {
-      document.documentElement.setAttribute('data-theme', 'dark')
-    }
-
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setLoading(false)
@@ -38,6 +34,7 @@ function App() {
         <Route path="/add" element={session ? <AddPlant /> : <Navigate to="/auth" />} />
         <Route path="/plant/:id" element={session ? <PlantDetail /> : <Navigate to="/auth" />} />
         <Route path="/plant/:id/history" element={session ? <CareHistory /> : <Navigate to="/auth" />} />
+        <Route path="/wins" element={session ? <Wins session={session} /> : <Navigate to="/auth" />} />
         <Route path="/profile" element={session ? <Profile session={session} /> : <Navigate to="/auth" />} />
       </Routes>
     </BrowserRouter>
