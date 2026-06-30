@@ -529,3 +529,16 @@
   border-color: var(--green);
   background: #E5F5EA;
 }
+
+.plantdetail-photo-wrap { position: relative; margin-bottom: 8px; }
+.plantdetail-photo-wrap .plantdetail-image,
+.plantdetail-photo-wrap .plantdetail-noimg { margin-bottom: 0; }
+.plantdetail-photo-btn {
+  position: absolute; bottom: 10px; right: 10px;
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(0,0,0,0.55); color: white; border: none;
+  border-radius: 12px; padding: 8px 12px; font-weight: 700; font-size: 0.8rem;
+  font-family: inherit; cursor: pointer; backdrop-filter: blur(4px);
+}
+.plantdetail-photo-btn:disabled { opacity: 0.7; cursor: default; }
+.plantdetail-photo-message { text-align: center; font-weight: 700; color: var(--green-dark); font-size: 0.85rem; margin-bottom: 16px; }

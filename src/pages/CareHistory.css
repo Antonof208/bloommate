@@ -79,3 +79,17 @@
   font-size: 0.8rem;
   color: #888;
 }
+
+.careh-photo-card { display: flex; gap: 10px; background: white; border: 2px solid #E5F5EA; border-radius: 14px; padding: 10px; margin-bottom: 8px; }
+.careh-photo-img { width: 64px; height: 64px; border-radius: 10px; object-fit: cover; flex-shrink: 0; }
+.careh-photo-info { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.careh-photo-toprow { display: flex; align-items: center; justify-content: space-between; }
+.careh-photo-badge { display: flex; align-items: center; gap: 3px; background: #FFF6DD; color: #B8860B; font-size: 0.7rem; font-weight: 800; border-radius: 8px; padding: 2px 8px; }
+.careh-photo-time { font-size: 0.78rem; color: #888; }
+.careh-photo-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.careh-photo-action-btn { display: flex; align-items: center; gap: 4px; background: #E5F5EA; color: var(--green-dark); border: none; border-radius: 8px; padding: 6px 10px; font-size: 0.75rem; font-weight: 700; font-family: inherit; cursor: pointer; }
+.careh-photo-action-danger { background: #FDEAEA; color: #E5484D; }
+.careh-photo-confirm { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 700; color: #1A1A1A; flex-wrap: wrap; }
+.careh-photo-confirm-yes, .careh-photo-confirm-no { border: none; border-radius: 8px; padding: 5px 10px; font-size: 0.75rem; font-weight: 800; cursor: pointer; font-family: inherit; }
+.careh-photo-confirm-yes { background: #E5484D; color: white; }
+.careh-photo-confirm-no { background: #F0F0F0; color: #555; }

@@ -1,20 +1,21 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   IconArrowLeft, IconDroplet, IconSun, IconRefresh, IconGauge,
   IconPencil, IconTrash, IconCheck, IconX, IconLeaf, IconScissors,
-  IconChevronRight, IconBell, IconBellOff
+  IconChevronRight, IconBell, IconBellOff, IconCamera
 } from '@tabler/icons-react'
 import { supabase } from '../lib/supabase'
 import { formatRelativeDay, formatTime, isToday, getLocalDateString } from '../lib/dateUtils'
-import AchievementToast from '../components/AchievementToast'
+import { uploadPlantPhoto, getMainPhoto, getSignedUrl } from '../lib/photos'
+import { checkAndUnlockAchievements } from '../lib/achievements'
 import sadMascot from '../assets/mascot/sad.png'
 import './PlantDetail.css'
 
 const CARE_ACTIONS = [
-  { key: 'water',     label: 'Water',     icon: IconDroplet  },
-  { key: 'fertilize', label: 'Fertilize', icon: IconLeaf     },
-  { key: 'cut',       label: 'Cut',       icon: IconScissors },
+  { key: 'water', label: 'Water', icon: IconDroplet },
+  { key: 'fertilize', label: 'Fertilize', icon: IconLeaf },
+  { key: 'cut', label: 'Cut', icon: IconScissors },
 ]
 
 const WATERING_TO_DAYS = { 'frequent': 1, 'average': 3, 'minimum': 7, 'none': null }
@@ -41,9 +42,12 @@ export default function PlantDetail() {
   const [loggingAction, setLoggingAction] = useState(null)
   const [logError, setLogError] = useState(null)
   const [reminderSaving, setReminderSaving] = useState(false)
-  const [toastAchievement, setToastAchievement] = useState(null)
+  const [mainPhotoUrl, setMainPhotoUrl] = useState(null)
+  const [photoUploading, setPhotoUploading] = useState(false)
+  const [photoMessage, setPhotoMessage] = useState(null)
+  const fileInputRef = useRef(null)
 
-  useEffect(() => { fetchPlant(); fetchLogs() }, [id])
+  useEffect(() => { fetchPlant(); fetchLogs(); fetchMainPhoto() }, [id])
 
   async function fetchPlant() {
     setLoading(true); setError(null)
@@ -60,6 +64,44 @@ export default function PlantDetail() {
     setLogsLoading(false)
   }
 
+  async function fetchMainPhoto() {
+    try {
+      const photo = await getMainPhoto(id)
+      if (photo) {
+        const url = await getSignedUrl(photo.storage_path)
+        setMainPhotoUrl(url)
+      } else {
+        setMainPhotoUrl(null)
+      }
+    } catch (err) {
+      console.error('Could not load main photo:', err)
+    }
+  }
+
+  function handlePhotoButtonClick() {
+    fileInputRef.current?.click()
+  }
+
+  async function handleFileSelected(e) {
+    const file = e.target.files[0]
+    e.target.value = ''
+    if (!file) return
+    setPhotoUploading(true)
+    setPhotoMessage(null)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      await uploadPlantPhoto(user.id, id, file)
+      await fetchMainPhoto()
+      const unlocked = await checkAndUnlockAchievements(user.id)
+      setPhotoMessage(unlocked.includes('bloom-cam') ? 'Photo added! 🎉 Bloom Cam unlocked!' : 'Photo added!')
+    } catch (err) {
+      setPhotoMessage('Could not upload photo. Please try again.')
+    } finally {
+      setPhotoUploading(false)
+      setTimeout(() => setPhotoMessage(null), 4000)
+    }
+  }
+
   async function handleLogCare(action) {
     setLoggingAction(action); setLogError(null)
     try {
@@ -69,8 +111,6 @@ export default function PlantDetail() {
       setLogs((prev) => [data, ...prev])
       const { error: streakError } = await supabase.rpc('bump_streak', { p_today: getLocalDateString() })
       if (streakError) console.error('Streak update failed:', streakError)
-      const newAchievements = await checkNewAchievements(user.id)
-      if (newAchievements.length > 0) setToastAchievement(newAchievements[0])
     } catch (err) {
       setLogError('Could not log that. Please try again.')
     } finally {
@@ -137,8 +177,8 @@ export default function PlantDetail() {
   }
 
   if (loading) return <div className="plantdetail-page"><div className="plantdetail-header"><button className="plantdetail-back" onClick={() => navigate('/')}><IconArrowLeft size={22} /></button></div><p className="plantdetail-loading">Loading...</p></div>
-  if (error)   return <div className="plantdetail-page"><div className="plantdetail-header"><button className="plantdetail-back" onClick={() => navigate('/')}><IconArrowLeft size={22} /></button></div><p className="plantdetail-error">{error}</p></div>
-  if (!plant)  return null
+  if (error) return <div className="plantdetail-page"><div className="plantdetail-header"><button className="plantdetail-back" onClick={() => navigate('/')}><IconArrowLeft size={22} /></button></div><p className="plantdetail-error">{error}</p></div>
+  if (!plant) return null
 
   if (confirmingDelete) {
     return (
@@ -183,6 +223,7 @@ export default function PlantDetail() {
   for (const log of logs) { if (!lastByAction[log.action]) lastByAction[log.action] = log }
   const reminderHour = plant.reminder_time_hour ?? 8
   const reminderDays = plant.reminder_frequency_days ?? defaultFrequencyDays(plant.watering)
+  const displayImage = mainPhotoUrl || plant.image_url
 
   return (
     <div className="plantdetail-page">
@@ -195,9 +236,14 @@ export default function PlantDetail() {
         </div>
       </div>
 
-      {plant.image_url
-        ? <img src={plant.image_url} alt={plant.nickname} className="plantdetail-image" />
-        : <div className="plantdetail-noimg">🌿</div>}
+      <div className="plantdetail-photo-wrap">
+        {displayImage ? <img src={displayImage} alt={plant.nickname} className="plantdetail-image" /> : <div className="plantdetail-noimg">🌿</div>}
+        <button className="plantdetail-photo-btn" onClick={handlePhotoButtonClick} disabled={photoUploading}>
+          <IconCamera size={16} />{photoUploading ? 'Uploading...' : 'Add photo'}
+        </button>
+        <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileSelected} />
+      </div>
+      {photoMessage && <p className="plantdetail-photo-message">{photoMessage}</p>}
 
       {(plant.common_name || plant.scientific_name) && (
         <div className="plantdetail-names">
@@ -207,9 +253,9 @@ export default function PlantDetail() {
       )}
 
       <div className="plantdetail-care-grid">
-        {plant.watering   && <div className="plantdetail-care-card"><IconDroplet size={22} className="plantdetail-care-icon" /><p className="plantdetail-care-label">Watering</p><p className="plantdetail-care-value">{plant.watering}</p></div>}
-        {plant.sunlight   && <div className="plantdetail-care-card"><IconSun size={22} className="plantdetail-care-icon" /><p className="plantdetail-care-label">Sunlight</p><p className="plantdetail-care-value">{plant.sunlight}</p></div>}
-        {plant.cycle      && <div className="plantdetail-care-card"><IconRefresh size={22} className="plantdetail-care-icon" /><p className="plantdetail-care-label">Cycle</p><p className="plantdetail-care-value">{plant.cycle}</p></div>}
+        {plant.watering && <div className="plantdetail-care-card"><IconDroplet size={22} className="plantdetail-care-icon" /><p className="plantdetail-care-label">Watering</p><p className="plantdetail-care-value">{plant.watering}</p></div>}
+        {plant.sunlight && <div className="plantdetail-care-card"><IconSun size={22} className="plantdetail-care-icon" /><p className="plantdetail-care-label">Sunlight</p><p className="plantdetail-care-value">{plant.sunlight}</p></div>}
+        {plant.cycle && <div className="plantdetail-care-card"><IconRefresh size={22} className="plantdetail-care-icon" /><p className="plantdetail-care-label">Cycle</p><p className="plantdetail-care-value">{plant.cycle}</p></div>}
         {plant.care_level && <div className="plantdetail-care-card"><IconGauge size={22} className="plantdetail-care-icon" /><p className="plantdetail-care-label">Care level</p><p className="plantdetail-care-value">{plant.care_level}</p></div>}
       </div>
 
@@ -248,7 +294,7 @@ export default function PlantDetail() {
             <div className="plantdetail-reminder-divider" />
             <p className="plantdetail-reminder-sublabel">Remind me</p>
             <div className="plantdetail-reminder-time-btns">
-              <button className={`plantdetail-reminder-time-btn ${reminderHour === 8  ? 'is-selected' : ''}`} onClick={() => handleReminderTime(8)}>🌅 Morning</button>
+              <button className={`plantdetail-reminder-time-btn ${reminderHour === 8 ? 'is-selected' : ''}`} onClick={() => handleReminderTime(8)}>🌅 Morning</button>
               <button className={`plantdetail-reminder-time-btn ${reminderHour === 18 ? 'is-selected' : ''}`} onClick={() => handleReminderTime(18)}>🌆 Evening</button>
             </div>
             <p className="plantdetail-reminder-sublabel" style={{ marginTop: 12 }}>Every</p>
@@ -266,30 +312,26 @@ export default function PlantDetail() {
       <div className="plantdetail-activity">
         <div className="plantdetail-activity-header">
           <h3>Recent activity</h3>
-          {logs.length > 0 && <button className="plantdetail-activity-seeall" onClick={() => navigate(`/plant/${id}/history`)}>See all <IconChevronRight size={16} /></button>}
+          <button className="plantdetail-activity-seeall" onClick={() => navigate(`/plant/${id}/history`)}>See all <IconChevronRight size={16} /></button>
         </div>
-        {logsLoading
-          ? <p className="plantdetail-activity-empty">Loading...</p>
-          : logs.length === 0
-            ? <p className="plantdetail-activity-empty">No activity logged yet.</p>
-            : (
-              <div className="plantdetail-activity-list">
-                {logs.slice(0, 5).map((log) => {
-                  const meta = CARE_ACTIONS.find((a) => a.key === log.action)
-                  const Icon = meta.icon
-                  return (
-                    <div key={log.id} className="plantdetail-activity-row">
-                      <span className="plantdetail-activity-icon"><Icon size={16} /></span>
-                      <span className="plantdetail-activity-label">{meta.label}</span>
-                      <span className="plantdetail-activity-time">{formatRelativeDay(log.logged_at)} · {formatTime(log.logged_at)}</span>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
+        {logsLoading ? <p className="plantdetail-activity-empty">Loading...</p>
+          : logs.length === 0 ? <p className="plantdetail-activity-empty">No activity logged yet.</p>
+          : (
+            <div className="plantdetail-activity-list">
+              {logs.slice(0, 5).map((log) => {
+                const meta = CARE_ACTIONS.find((a) => a.key === log.action)
+                const Icon = meta.icon
+                return (
+                  <div key={log.id} className="plantdetail-activity-row">
+                    <span className="plantdetail-activity-icon"><Icon size={16} /></span>
+                    <span className="plantdetail-activity-label">{meta.label}</span>
+                    <span className="plantdetail-activity-time">{formatRelativeDay(log.logged_at)} · {formatTime(log.logged_at)}</span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
       </div>
-
-      <AchievementToast achievement={toastAchievement} onDismiss={() => setToastAchievement(null)} />
     </div>
   )
 }

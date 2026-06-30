@@ -4,6 +4,7 @@ import { IconUserCircle, IconPencil, IconCheck, IconX, IconLogout } from '@table
 import { supabase } from '../lib/supabase'
 import BottomNav from '../components/BottomNav'
 import './Profile.css'
+import { IconUserCircle, IconPencil, IconCheck, IconX, IconLogout, IconBell, IconChevronRight } from '@tabler/icons-react'
 
 function formatMemberSince(dateString) {
   const date = new Date(dateString)

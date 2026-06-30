@@ -29,7 +29,7 @@ export const ACHIEVEMENTS = [
   { key: 'week-warrior',   name: 'Week Warrior',   description: 'Reach a 7-day streak',       image: weekWarriorImg },
   { key: 'streak-master',  name: 'Streak Master',  description: 'Reach a 30-day streak',      image: streakMasterImg },
   { key: 'legend',         name: 'Legend',         description: 'Reach a 100-day streak',     image: legendImg },
-  { key: 'bloom-cam',      name: 'Bloom Cam',      description: 'Take a photo of your plant', image: bloomCamImg, phase3: true },
+  { key: 'bloom-cam',      name: 'Bloom Cam',      description: 'Take a photo of your plant', image: bloomCamImg },
 ]
 
 export async function checkAndUnlockAchievements(userId) {
@@ -41,10 +41,11 @@ export async function checkAndUnlockAchievements(userId) {
 
     const alreadyUnlocked = new Set((existing || []).map(r => r.achievement_key))
 
-    const [{ data: plants }, { data: logs }, { data: streak }] = await Promise.all([
+    const [{ data: plants }, { data: logs }, { data: streak }, { data: photos }] = await Promise.all([
       supabase.from('plants').select('id').eq('user_id', userId),
       supabase.from('care_logs').select('action, logged_at').eq('user_id', userId),
       supabase.from('user_streaks').select('current_streak, longest_streak').eq('user_id', userId).maybeSingle(),
+      supabase.from('plant_photos').select('id').eq('user_id', userId),
     ])
 
     const plantCount = plants?.length || 0
@@ -69,7 +70,7 @@ export async function checkAndUnlockAchievements(userId) {
     check('week-warrior',  bestStreak >= 7)
     check('streak-master', bestStreak >= 30)
     check('legend',        bestStreak >= 100)
-    // bloom-cam: unlocked manually in Phase 3
+    check('bloom-cam',     (photos?.length || 0) >= 1)
 
     if (toUnlock.length > 0) {
       await supabase.from('user_achievements').insert(
