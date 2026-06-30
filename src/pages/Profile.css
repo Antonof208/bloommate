@@ -135,3 +135,40 @@
   opacity: 0.6;
   cursor: default;
 }
+
+.profile-section-title {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+  padding-left: 4px;
+}
+
+.profile-card {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.profile-link-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  font-family: inherit;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.profile-row-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  color: var(--text);
+  font-size: 0.95rem;
+}

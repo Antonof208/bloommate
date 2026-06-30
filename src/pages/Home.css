@@ -75,15 +75,9 @@
 }
 
 .streak-badge {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: #FFF1EB;
-  color: var(--orange);
-  border-radius: 14px;
-  padding: 6px 10px;
-  font-weight: 800;
-  font-size: 0.9rem;
+  display: flex; align-items: center; gap: 4px; background: #FFF1EB;
+  color: var(--orange); border-radius: 14px; padding: 6px 10px; font-weight: 800; font-size: 0.9rem;
+  border: none; font-family: inherit; cursor: pointer;
 }
 
 .streak-badge.is-zero {

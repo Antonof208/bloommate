@@ -99,6 +99,17 @@ export default function Profile({ session }) {
         </div>
 
         <div className="profile-section">
+          <p className="profile-section-title">Notifications</p>
+          <button className="profile-card profile-link-row" onClick={() => navigate('/reminders')}>
+            <div className="profile-row-label">
+              <IconBell size={20} />
+              <span>Reminders</span>
+            </div>
+            <IconChevronRight size={18} />
+          </button>
+        </div>
+
+        <div className="profile-section">
           <button className="profile-signout-btn" onClick={handleSignOut} disabled={signingOut}>
             <IconLogout size={18} />
             {signingOut ? 'Signing out...' : 'Sign out'}
