@@ -1,10 +1,8 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { IconUserCircle, IconPencil, IconCheck, IconX, IconLogout } from '@tabler/icons-react'
-import { supabase } from '../lib/supabase'
-import BottomNav from '../components/BottomNav'
-import './Profile.css'
-import { IconUserCircle, IconPencil, IconCheck, IconX, IconLogout, IconBell, IconChevronRight } from '@tabler/icons-react'
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
+import { IconUserCircle, IconPencil, IconCheck, IconX, IconLogout, IconBell, IconChevronRight } from "@tabler/icons-react";
+import './Profile.css';
 
 function formatMemberSince(dateString) {
   const date = new Date(dateString)
