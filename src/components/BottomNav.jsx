@@ -23,7 +23,7 @@ export default function BottomNav({ active }) {
         <span>Wins</span>
       </button>
 
-      <button className={`nav-item ${active === 'profile' ? 'active' : ''}`}>
+      <button className={`nav-item ${active === 'profile' ? 'active' : ''}`} onClick={() => navigate('/profile')}>
         <IconUser size={24} />
         <span>Profile</span>
       </button>
