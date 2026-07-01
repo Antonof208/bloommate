@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { IconBell, IconBellRinging, IconFlame, IconSnowflake } from '@tabler/icons-react'
 import { supabase } from '../lib/supabase'
-import { registerServiceWorker, subscribeToPush, isSubscribed } from '../lib/push'
+import { registerServiceWorker } from '../lib/push'
 import { getMainPhotosForPlants } from '../lib/photos'
 import BottomNav from '../components/BottomNav'
 import './Home.css'
@@ -14,16 +14,12 @@ export default function Home({ session }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [streak, setStreak] = useState(null)
-  const [pushEnabled, setPushEnabled] = useState(false)
-  const [pushBusy, setPushBusy] = useState(false)
-  const [pushMessage, setPushMessage] = useState(null)
   const name = session.user.email.split('@')[0]
 
   useEffect(() => {
     fetchPlants()
     fetchStreak()
     registerServiceWorker()
-    isSubscribed().then(setPushEnabled)
   }, [])
 
   async function fetchPlants() {
@@ -50,26 +46,6 @@ export default function Home({ session }) {
     setStreak(data)
   }
 
-  async function handleBellClick() {
-    if (pushEnabled) {
-      setPushMessage('Reminders are already on for this browser 🔔')
-      setTimeout(() => setPushMessage(null), 3000)
-      return
-    }
-    setPushBusy(true)
-    setPushMessage(null)
-    try {
-      await subscribeToPush(session.user.id)
-      setPushEnabled(true)
-      setPushMessage('Notifications enabled! 🎉')
-    } catch (err) {
-      setPushMessage(err.message || 'Could not enable notifications.')
-    } finally {
-      setPushBusy(false)
-      setTimeout(() => setPushMessage(null), 4000)
-    }
-  }
-
   const currentStreak = streak?.current_streak || 0
 
   return (
@@ -80,23 +56,24 @@ export default function Home({ session }) {
           <h2>My Plants 🌿</h2>
         </div>
         <div className="home-header-right">
-          <div className={`streak-badge ${currentStreak === 0 ? 'is-zero' : ''}`}>
+          <button
+            className={`streak-badge ${currentStreak === 0 ? 'is-zero' : ''}`}
+            onClick={() => navigate('/wins')}
+          >
             <IconFlame size={18} className="streak-flame" />
             <span>{currentStreak}</span>
-          </div>
+          </button>
           {streak?.freezes_available > 0 && (
             <div className="freeze-badge">
               <IconSnowflake size={16} />
               <span>{streak.freezes_available}</span>
             </div>
           )}
-          <button className={`btn-icon ${pushEnabled ? 'is-active' : ''}`} onClick={handleBellClick} disabled={pushBusy}>
-            {pushEnabled ? <IconBellRinging size={20} /> : <IconBell size={20} />}
+          <button className="btn-icon" onClick={() => navigate('/reminders')}>
+            <IconBell size={20} />
           </button>
         </div>
       </header>
-
-      {pushMessage && <p className="home-push-message">{pushMessage}</p>}
 
       <main className="content">
         {loading ? (
