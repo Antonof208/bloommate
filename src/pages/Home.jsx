@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { IconBell, IconBellRinging, IconFlame, IconSnowflake } from '@tabler/icons-react'
+import { IconBell, IconBellRinging, IconFlame, IconSnowflake, IconDroplet, IconInfoCircle, IconCheck } from '@tabler/icons-react'
 import { supabase } from '../lib/supabase'
 import { registerServiceWorker } from '../lib/push'
 import { getMainPhotosForPlants } from '../lib/photos'
+import { isToday, getLocalDateString } from '../lib/dateUtils'
 import BottomNav from '../components/BottomNav'
 import './Home.css'
 
@@ -14,7 +15,9 @@ export default function Home({ session }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [streak, setStreak] = useState(null)
-  const name = session.user.email.split('@')[0]
+  const [wateredToday, setWateredToday] = useState({})
+  const [waterLoading, setWaterLoading] = useState(null)
+  const name = session.user.user_metadata?.display_name || session.user.email.split('@')[0]
 
   useEffect(() => {
     fetchPlants()
@@ -37,13 +40,53 @@ export default function Home({ session }) {
       } catch (err) {
         console.error('Could not load plant photos:', err)
       }
+      fetchWateredToday(data.map((p) => p.id))
     }
     setLoading(false)
+  }
+
+  async function fetchWateredToday(plantIds) {
+    if (plantIds.length === 0) { setWateredToday({}); return }
+    const { data, error } = await supabase
+      .from('care_logs')
+      .select('plant_id, logged_at')
+      .in('plant_id', plantIds)
+      .eq('action', 'water')
+      .order('logged_at', { ascending: false })
+    if (error) return
+    const latestByPlant = {}
+    for (const log of data) {
+      if (!(log.plant_id in latestByPlant)) latestByPlant[log.plant_id] = log.logged_at
+    }
+    const doneMap = {}
+    for (const [pid, loggedAt] of Object.entries(latestByPlant)) {
+      doneMap[pid] = isToday(loggedAt)
+    }
+    setWateredToday(doneMap)
   }
 
   async function fetchStreak() {
     const { data } = await supabase.from('user_streaks').select('*').eq('user_id', session.user.id).maybeSingle()
     setStreak(data)
+  }
+
+  async function handleWaterLog(plantId, e) {
+    e.stopPropagation()
+    if (wateredToday[plantId] || waterLoading === plantId) return
+    setWaterLoading(plantId)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      const { error } = await supabase.from('care_logs').insert({ plant_id: plantId, user_id: user.id, action: 'water' })
+      if (error) throw error
+      setWateredToday((prev) => ({ ...prev, [plantId]: true }))
+      const { error: streakError } = await supabase.rpc('bump_streak', { p_today: getLocalDateString() })
+      if (streakError) console.error('Streak update failed:', streakError)
+      fetchStreak()
+    } catch (err) {
+      console.error('Could not log water:', err)
+    } finally {
+      setWaterLoading(null)
+    }
   }
 
   const currentStreak = streak?.current_streak || 0
@@ -94,16 +137,35 @@ export default function Home({ session }) {
           <div className="plant-grid">
             {plants.map(plant => {
               const img = photoUrls[plant.id] || plant.image_url
+              const doneToday = !!wateredToday[plant.id]
+              const isWatering = waterLoading === plant.id
               return (
-                <button key={plant.id} className="plant-card" onClick={() => navigate(`/plant/${plant.id}`)}>
-                  {img
-                    ? <img src={img} alt={plant.nickname} className="plant-card-image" />
-                    : <div className="plant-card-noimg">🌿</div>}
-                  <div className="plant-card-info">
-                    <p className="plant-card-name">{plant.nickname}</p>
-                    {plant.watering && <p className="plant-card-meta">💧 {plant.watering}</p>}
+                <div key={plant.id} className="plant-card">
+                  <div className="plant-card-tap" onClick={() => navigate(`/plant/${plant.id}`)}>
+                    {img
+                      ? <img src={img} alt={plant.nickname} className="plant-card-image" />
+                      : <div className="plant-card-noimg">🌿</div>}
+                    <div className="plant-card-info">
+                      <p className="plant-card-name">{plant.nickname}</p>
+                    </div>
                   </div>
-                </button>
+                  <div className="plant-card-actions">
+                    <button
+                      className={`plant-card-water-btn ${doneToday ? 'is-done' : ''}`}
+                      onClick={(e) => handleWaterLog(plant.id, e)}
+                      disabled={doneToday || isWatering}
+                    >
+                      {doneToday ? <IconCheck size={16} /> : <IconDroplet size={16} />}
+                      {isWatering ? 'Watering...' : doneToday ? 'Watered' : 'Water'}
+                    </button>
+                    <button
+                      className="plant-card-info-btn"
+                      onClick={(e) => { e.stopPropagation(); navigate(`/plant/${plant.id}`) }}
+                    >
+                      <IconInfoCircle size={18} />
+                    </button>
+                  </div>
+                </div>
               )
             })}
           </div>

@@ -112,3 +112,63 @@
   font-size: 0.85rem;
   margin-bottom: 8px;
 }
+
+.plant-card-tap {
+  cursor: pointer;
+}
+
+.plant-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px 12px;
+}
+
+.plant-card-water-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: #EAF6FF;
+  color: #3B9EDB;
+  border: none;
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-weight: 800;
+  font-size: 0.8rem;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #C7E8FA;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.plant-card-water-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #C7E8FA;
+}
+
+.plant-card-water-btn.is-done {
+  background: #E5F5EA;
+  color: var(--green-dark);
+  box-shadow: none;
+  cursor: default;
+}
+
+.plant-card-water-btn:disabled {
+  cursor: default;
+}
+
+.plant-card-info-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #F0F0F0;
+  color: #777;
+  border: none;
+  cursor: pointer;
+}

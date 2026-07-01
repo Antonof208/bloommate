@@ -25,6 +25,14 @@ function defaultFrequencyDays(wateringText) {
   return WATERING_TO_DAYS[wateringText.toLowerCase().trim()] ?? 3
 }
 
+function formatHour(hour) {
+  const h = hour % 12 === 0 ? 12 : hour % 12
+  const suffix = hour < 12 ? 'AM' : 'PM'
+  return `${h}:00 ${suffix}`
+}
+
+const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => i)
+
 export default function PlantDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -48,6 +56,7 @@ export default function PlantDetail() {
   const [photoMessage, setPhotoMessage] = useState(null)
   const fileInputRef = useRef(null)
   const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [customOpen, setCustomOpen] = useState(false)
 
   useEffect(() => { fetchPlant(); fetchLogs(); fetchMainPhoto() }, [id])
 
@@ -225,6 +234,8 @@ export default function PlantDetail() {
   for (const log of logs) { if (!lastByAction[log.action]) lastByAction[log.action] = log }
   const reminderHour = plant.reminder_time_hour ?? 8
   const reminderDays = plant.reminder_frequency_days ?? defaultFrequencyDays(plant.watering)
+  const isCustomHour = reminderHour !== 8 && reminderHour !== 18
+  const showCustomPicker = customOpen || isCustomHour
   const displayImage = mainPhotoUrl || plant.image_url
 
   return (
@@ -297,11 +308,34 @@ export default function PlantDetail() {
         {plant.reminder_enabled && (
           <>
             <div className="plantdetail-reminder-divider" />
-            <p className="plantdetail-reminder-sublabel">Remind me</p>
+            <p className="plantdetail-reminder-sublabel">Remind me · {formatHour(reminderHour)}</p>
             <div className="plantdetail-reminder-time-btns">
-              <button className={`plantdetail-reminder-time-btn ${reminderHour === 8 ? 'is-selected' : ''}`} onClick={() => handleReminderTime(8)}>🌅 Morning</button>
-              <button className={`plantdetail-reminder-time-btn ${reminderHour === 18 ? 'is-selected' : ''}`} onClick={() => handleReminderTime(18)}>🌆 Evening</button>
+              <button className={`plantdetail-reminder-time-btn ${reminderHour === 8 ? 'is-selected' : ''}`} onClick={() => { handleReminderTime(8); setCustomOpen(false) }}>
+                🌅 Morning
+                <span className="plantdetail-reminder-time-sub">8:00 AM</span>
+              </button>
+              <button className={`plantdetail-reminder-time-btn ${reminderHour === 18 ? 'is-selected' : ''}`} onClick={() => { handleReminderTime(18); setCustomOpen(false) }}>
+                🌆 Evening
+                <span className="plantdetail-reminder-time-sub">6:00 PM</span>
+              </button>
+              <button className={`plantdetail-reminder-time-btn ${showCustomPicker ? 'is-selected' : ''}`} onClick={() => setCustomOpen(true)}>
+                ⏰ Custom
+                <span className="plantdetail-reminder-time-sub">{isCustomHour ? formatHour(reminderHour) : 'Pick time'}</span>
+              </button>
             </div>
+
+            {showCustomPicker && (
+              <select
+                className="plantdetail-hour-select"
+                value={reminderHour}
+                onChange={(e) => handleReminderTime(Number(e.target.value))}
+              >
+                {HOUR_OPTIONS.map((h) => (
+                  <option key={h} value={h}>{formatHour(h)}</option>
+                ))}
+              </select>
+            )}
+
             <p className="plantdetail-reminder-sublabel" style={{ marginTop: 12 }}>Every</p>
             <div className="plantdetail-reminder-freq-btns">
               {[1, 2, 3, 5, 7, 14].map((d) => (
