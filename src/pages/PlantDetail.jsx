@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {
   IconArrowLeft, IconDroplet, IconSun, IconRefresh, IconGauge,
   IconPencil, IconTrash, IconCheck, IconX, IconLeaf, IconScissors,
-  IconChevronRight, IconBell, IconBellOff, IconCamera
+  IconChevronRight, IconChevronDown, IconChevronUp, IconBell, IconBellOff,
+  IconCamera, IconPlus, IconSeeding, IconWind
 } from '@tabler/icons-react'
 import { supabase } from '../lib/supabase'
 import { formatRelativeDay, formatTime, isToday, getLocalDateString } from '../lib/dateUtils'
@@ -19,10 +20,58 @@ const CARE_ACTIONS = [
   { key: 'cut', label: 'Cut', icon: IconScissors },
 ]
 
+const OTHER_CHIPS = ['Repotting', 'Misting', 'Pest Control', 'Cleaning leaves', 'Propagation', 'Deadheading']
+
 const WATERING_TO_DAYS = { 'frequent': 1, 'average': 3, 'minimum': 7, 'none': null }
 function defaultFrequencyDays(wateringText) {
   if (!wateringText) return 3
   return WATERING_TO_DAYS[wateringText.toLowerCase().trim()] ?? 3
+}
+
+const WATERING_LABELS = {
+  frequent: 'Frequent',
+  average: 'Average',
+  minimum: 'Minimum',
+  'soak and dry': 'Soak & Dry',
+  'soak & dry': 'Soak & Dry',
+  none: 'None',
+}
+function friendlyWatering(raw) {
+  if (!raw) return null
+  const key = raw.toLowerCase().trim()
+  return WATERING_LABELS[key] || raw
+}
+
+const SUNLIGHT_KEYWORDS = [
+  { match: 'full sun', label: 'Full Sun' },
+  { match: 'part shade', label: 'Part Shade' },
+  { match: 'part sun', label: 'Part Shade' },
+  { match: 'filtered shade', label: 'Indirect' },
+  { match: 'filtered sun', label: 'Indirect' },
+  { match: 'full shade', label: 'Low Light' },
+  { match: 'indirect', label: 'Indirect' },
+  { match: 'shade', label: 'Low Light' },
+]
+function friendlySunlight(raw) {
+  if (!raw) return null
+  const key = raw.toLowerCase()
+  for (const { match, label } of SUNLIGHT_KEYWORDS) {
+    if (key.includes(match)) return label
+  }
+  return raw
+}
+
+const DIFFICULTY_META = {
+  easy: { emoji: '🟢', label: 'Easy' },
+  moderate: { emoji: '🟡', label: 'Moderate' },
+  medium: { emoji: '🟡', label: 'Moderate' },
+  advanced: { emoji: '🔴', label: 'Advanced' },
+  difficult: { emoji: '🔴', label: 'Advanced' },
+}
+function difficultyBadge(careLevel) {
+  if (!careLevel) return null
+  const key = careLevel.toLowerCase().trim()
+  return DIFFICULTY_META[key] || { emoji: '🟢', label: careLevel }
 }
 
 function formatHour(hour) {
@@ -57,6 +106,20 @@ export default function PlantDetail() {
   const fileInputRef = useRef(null)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [customOpen, setCustomOpen] = useState(false)
+
+  // NEW: passport accordion
+  const [profileOpen, setProfileOpen] = useState(false)
+  const profileRef = useRef(null)
+
+  // NEW: Other logging modal
+  const [otherModalOpen, setOtherModalOpen] = useState(false)
+  const [otherSelectedChip, setOtherSelectedChip] = useState(null)
+  const [otherCustomText, setOtherCustomText] = useState('')
+  const [otherSaving, setOtherSaving] = useState(false)
+  const [otherError, setOtherError] = useState(null)
+
+  // NEW: smart suggestion banner
+  const [suggestionBanner, setSuggestionBanner] = useState({ visible: false, text: '' })
 
   useEffect(() => { fetchPlant(); fetchLogs(); fetchMainPhoto() }, [id])
 
@@ -129,6 +192,57 @@ export default function PlantDetail() {
     }
   }
 
+  // NEW: log an "Other" custom action
+  async function handleLogOther() {
+    const label = otherCustomText.trim() || otherSelectedChip
+    if (!label) return
+    setOtherSaving(true)
+    setOtherError(null)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      const { data, error } = await supabase
+        .from('care_logs')
+        .insert({ plant_id: id, user_id: user.id, action: 'custom', custom_action: label })
+        .select()
+        .single()
+      if (error) throw error
+      setLogs((prev) => [data, ...prev])
+      const { error: streakError } = await supabase.rpc('bump_streak', { p_today: getLocalDateString() })
+      if (streakError) console.error('Streak update failed:', streakError)
+
+      setOtherModalOpen(false)
+      setOtherSelectedChip(null)
+      setOtherCustomText('')
+
+      if (label.toLowerCase() === 'repotting') {
+        setSuggestionBanner({
+          visible: true,
+          text: `🌿 You repotted ${plant.nickname}! Set a reminder to fertilize in 2 weeks?`,
+        })
+      }
+    } catch (err) {
+      setOtherError('Could not log that. Please try again.')
+    } finally {
+      setOtherSaving(false)
+    }
+  }
+
+  // NEW: accept the smart suggestion — turns on the plant's reminder at 14 days
+  async function handleAcceptSuggestion() {
+    const updates = {
+      reminder_enabled: true,
+      reminder_frequency_days: 14,
+      reminder_time_hour: plant.reminder_time_hour ?? 8,
+    }
+    const { data, error } = await supabase.from('plants').update(updates).eq('id', id).select().single()
+    if (!error) setPlant(data)
+    setSuggestionBanner({ visible: false, text: '' })
+  }
+
+  function handleDismissSuggestion() {
+    setSuggestionBanner({ visible: false, text: '' })
+  }
+
   async function handleToggleReminder() {
     if (!plant) return
     setReminderSaving(true)
@@ -187,6 +301,11 @@ export default function PlantDetail() {
     }
   }
 
+  function scrollToProfile() {
+    setProfileOpen(true)
+    setTimeout(() => profileRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+  }
+
   if (loading) return <div className="plantdetail-page"><div className="plantdetail-header"><button className="plantdetail-back" onClick={() => navigate('/')}><IconArrowLeft size={22} /></button></div><p className="plantdetail-loading">Loading...</p></div>
   if (error) return <div className="plantdetail-page"><div className="plantdetail-header"><button className="plantdetail-back" onClick={() => navigate('/')}><IconArrowLeft size={22} /></button></div><p className="plantdetail-error">{error}</p></div>
   if (!plant) return null
@@ -238,6 +357,11 @@ export default function PlantDetail() {
   const showCustomPicker = customOpen || isCustomHour
   const displayImage = mainPhotoUrl || plant.image_url
 
+  const diffBadge = difficultyBadge(plant.care_level)
+  const wateringFriendly = friendlyWatering(plant.watering)
+  const sunlightFriendly = friendlySunlight(plant.sunlight)
+  const wateringDays = plant.watering ? defaultFrequencyDays(plant.watering) : null
+
   return (
     <div className="plantdetail-page">
       <div className="plantdetail-header">
@@ -253,6 +377,13 @@ export default function PlantDetail() {
         {displayImage
           ? <img src={displayImage} alt={plant.nickname} className="plantdetail-image" onClick={() => setLightboxOpen(true)} style={{ cursor: 'zoom-in' }} />
           : <div className="plantdetail-noimg">🌿</div>}
+
+        {diffBadge && (
+          <div className="plantdetail-badge-topleft">
+            <span className="plantdetail-badge">{diffBadge.emoji} {diffBadge.label}</span>
+          </div>
+        )}
+
         <button className="plantdetail-photo-btn" onClick={handlePhotoButtonClick} disabled={photoUploading}>
           <IconCamera size={16} />{photoUploading ? 'Uploading...' : 'Add photo'}
         </button>
@@ -268,11 +399,65 @@ export default function PlantDetail() {
         </div>
       )}
 
-      <div className="plantdetail-care-grid">
-        {plant.watering && <div className="plantdetail-care-card"><IconDroplet size={22} className="plantdetail-care-icon" /><p className="plantdetail-care-label">Watering</p><p className="plantdetail-care-value">{plant.watering}</p></div>}
-        {plant.sunlight && <div className="plantdetail-care-card"><IconSun size={22} className="plantdetail-care-icon" /><p className="plantdetail-care-label">Sunlight</p><p className="plantdetail-care-value">{plant.sunlight}</p></div>}
-        {plant.cycle && <div className="plantdetail-care-card"><IconRefresh size={22} className="plantdetail-care-icon" /><p className="plantdetail-care-label">Cycle</p><p className="plantdetail-care-value">{plant.cycle}</p></div>}
-        {plant.care_level && <div className="plantdetail-care-card"><IconGauge size={22} className="plantdetail-care-icon" /><p className="plantdetail-care-label">Care level</p><p className="plantdetail-care-value">{plant.care_level}</p></div>}
+      {/* 4-Card Passport */}
+      <div className="plantdetail-passport">
+        <button className="plantdetail-passport-card" onClick={scrollToProfile}>
+          <div className="plantdetail-passport-emoji">💧</div>
+          <p className="plantdetail-passport-label">Watering</p>
+          <p className="plantdetail-passport-value">{wateringFriendly || '—'}</p>
+        </button>
+        <button className="plantdetail-passport-card" onClick={scrollToProfile}>
+          <div className="plantdetail-passport-emoji">☀️</div>
+          <p className="plantdetail-passport-label">Sunlight</p>
+          <p className="plantdetail-passport-value">{sunlightFriendly || '—'}</p>
+        </button>
+        <button className="plantdetail-passport-card" onClick={scrollToProfile}>
+          <div className="plantdetail-passport-emoji">🌱</div>
+          <p className="plantdetail-passport-label">Soil</p>
+          <p className="plantdetail-passport-value">—</p>
+        </button>
+        <button className="plantdetail-passport-card" onClick={scrollToProfile}>
+          <div className="plantdetail-passport-emoji">💨</div>
+          <p className="plantdetail-passport-label">Humidity</p>
+          <p className="plantdetail-passport-value">—</p>
+        </button>
+      </div>
+
+      {/* Expandable Full Plant Profile */}
+      <div className="plantdetail-accordion" ref={profileRef}>
+        <button className="plantdetail-accordion-header" onClick={() => setProfileOpen((v) => !v)}>
+          <span>📖 Full Plant Profile</span>
+          {profileOpen ? <IconChevronUp size={20} /> : <IconChevronDown size={20} />}
+        </button>
+        {profileOpen && (
+          <div className="plantdetail-accordion-body">
+            <div className="plantdetail-accordion-item">
+              <strong>Watering:</strong> {wateringFriendly || 'Information not added yet'}
+              {wateringDays && ` — water roughly every ${wateringDays} day${wateringDays === 1 ? '' : 's'}.`}
+            </div>
+            <div className="plantdetail-accordion-item">
+              <strong>Sunlight:</strong> {sunlightFriendly || 'Information not added yet'}
+            </div>
+            <div className="plantdetail-accordion-item">
+              <strong>Cycle:</strong> {plant.cycle || 'Information not added yet'}
+            </div>
+            <div className="plantdetail-accordion-item">
+              <strong>Care level:</strong> {plant.care_level || 'Information not added yet'}
+            </div>
+            <div className="plantdetail-accordion-item">
+              <strong>Soil pH:</strong> Information not added yet
+            </div>
+            <div className="plantdetail-accordion-item">
+              <strong>Temperature range:</strong> Information not added yet
+            </div>
+            <div className="plantdetail-accordion-item">
+              <strong>Fertilizer schedule:</strong> Information not added yet
+            </div>
+            <div className="plantdetail-accordion-item">
+              <strong>Pruning advice:</strong> Information not added yet
+            </div>
+          </div>
+        )}
       </div>
 
       <h3 className="plantdetail-section-title">Log care</h3>
@@ -291,8 +476,63 @@ export default function PlantDetail() {
             </button>
           )
         })}
+        <button className="plantdetail-careaction-btn" onClick={() => setOtherModalOpen(true)}>
+          <IconPlus size={22} />
+          <span className="plantdetail-careaction-label">Other</span>
+          <span className="plantdetail-careaction-sub">Log something else</span>
+        </button>
       </div>
       {logError && <p className="plantdetail-error">{logError}</p>}
+
+      {/* Other logging modal */}
+      {otherModalOpen && (
+        <div className="plantdetail-modal-overlay" onClick={() => setOtherModalOpen(false)}>
+          <div className="plantdetail-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="plantdetail-modal-header">
+              <h3>Log an action</h3>
+              <button className="plantdetail-modal-close" onClick={() => setOtherModalOpen(false)}><IconX size={20} /></button>
+            </div>
+            <div className="plantdetail-chip-row">
+              {OTHER_CHIPS.map((chip) => (
+                <button
+                  key={chip}
+                  className={`plantdetail-chip ${otherSelectedChip === chip ? 'is-selected' : ''}`}
+                  onClick={() => { setOtherSelectedChip(chip); setOtherCustomText('') }}
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
+            <input
+              type="text"
+              className="plantdetail-modal-input"
+              placeholder="Or type your own action..."
+              value={otherCustomText}
+              onChange={(e) => { setOtherCustomText(e.target.value); setOtherSelectedChip(null) }}
+            />
+            {otherError && <p className="plantdetail-error">{otherError}</p>}
+            <button
+              className="plantdetail-save-btn"
+              style={{ marginTop: 16 }}
+              onClick={handleLogOther}
+              disabled={otherSaving || (!otherSelectedChip && !otherCustomText.trim())}
+            >
+              <IconCheck size={18} />{otherSaving ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Smart suggestion banner */}
+      {suggestionBanner.visible && (
+        <div className="plantdetail-suggestion-banner">
+          <p>{suggestionBanner.text}</p>
+          <div className="plantdetail-suggestion-actions">
+            <button className="plantdetail-suggestion-yes" onClick={handleAcceptSuggestion}>Yes, Add Reminder</button>
+            <button className="plantdetail-suggestion-no" onClick={handleDismissSuggestion}>No thanks</button>
+          </div>
+        </div>
+      )}
 
       <h3 className="plantdetail-section-title">Watering reminder</h3>
       <div className="plantdetail-reminder-card">
@@ -358,12 +598,13 @@ export default function PlantDetail() {
           : (
             <div className="plantdetail-activity-list">
               {logs.slice(0, 5).map((log) => {
-                const meta = CARE_ACTIONS.find((a) => a.key === log.action)
-                const Icon = meta.icon
+                const isCustom = log.action === 'custom'
+                const meta = !isCustom ? CARE_ACTIONS.find((a) => a.key === log.action) : null
+                const Icon = meta?.icon
                 return (
                   <div key={log.id} className="plantdetail-activity-row">
-                    <span className="plantdetail-activity-icon"><Icon size={16} /></span>
-                    <span className="plantdetail-activity-label">{meta.label}</span>
+                    <span className="plantdetail-activity-icon">{isCustom ? '📌' : <Icon size={16} />}</span>
+                    <span className="plantdetail-activity-label">{isCustom ? (log.custom_action || 'Other') : meta.label}</span>
                     <span className="plantdetail-activity-time">{formatRelativeDay(log.logged_at)} · {formatTime(log.logged_at)}</span>
                   </div>
                 )

@@ -572,3 +572,258 @@
   margin-top: 10px;
   background: white;
 }
+
+/* ===== NEW: Difficulty badge on photo ===== */
+.plantdetail-badge-topleft {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.plantdetail-badge {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(4px);
+  padding: 6px 10px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 0.78rem;
+  color: #1A1A1A;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+/* ===== NEW: 4-Card Passport ===== */
+.plantdetail-passport {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.plantdetail-passport-card {
+  background: white;
+  border: 2px solid #E5F5EA;
+  border-radius: 14px;
+  padding: 12px 6px;
+  text-align: center;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+
+.plantdetail-passport-card:hover {
+  border-color: var(--green);
+}
+
+.plantdetail-passport-card:active {
+  transform: scale(0.95);
+}
+
+.plantdetail-passport-emoji {
+  font-size: 1.2rem;
+  margin-bottom: 4px;
+}
+
+.plantdetail-passport-label {
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: #888;
+  margin-bottom: 2px;
+}
+
+.plantdetail-passport-value {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #1A1A1A;
+}
+
+/* ===== NEW: Expandable Full Plant Profile accordion ===== */
+.plantdetail-accordion {
+  background: white;
+  border: 2px solid #E5F5EA;
+  border-radius: 16px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.plantdetail-accordion-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--green-dark);
+}
+
+.plantdetail-accordion-body {
+  padding: 0 16px 14px;
+}
+
+.plantdetail-accordion-item {
+  padding: 8px 0;
+  border-bottom: 1px solid #F0FDF4;
+  font-size: 0.86rem;
+  color: #333;
+  line-height: 1.4;
+}
+
+.plantdetail-accordion-item:last-child {
+  border-bottom: none;
+}
+
+.plantdetail-accordion-item strong {
+  color: var(--green-dark);
+}
+
+/* ===== NEW: Other logging modal (bottom sheet) ===== */
+.plantdetail-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.plantdetail-modal {
+  background: white;
+  width: 100%;
+  max-width: 480px;
+  border-radius: 24px 24px 0 0;
+  padding: 20px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.plantdetail-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.plantdetail-modal-header h3 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--green-dark);
+}
+
+.plantdetail-modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #888;
+  display: flex;
+}
+
+.plantdetail-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.plantdetail-chip {
+  padding: 9px 14px;
+  border-radius: 20px;
+  border: 2px solid #E5F5EA;
+  background: white;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--green-dark);
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.plantdetail-chip:hover {
+  border-color: var(--green);
+}
+
+.plantdetail-chip.is-selected {
+  background: var(--green);
+  border-color: var(--green);
+  color: white;
+}
+
+.plantdetail-modal-input {
+  width: 100%;
+  border: 2px solid #E5F5EA;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 1rem;
+  font-family: inherit;
+  margin-top: 4px;
+}
+
+/* ===== NEW: Smart suggestion banner ===== */
+.plantdetail-suggestion-banner {
+  background: #FFF4E5;
+  border: 2px solid var(--orange);
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+.plantdetail-suggestion-banner p {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1A1A1A;
+  line-height: 1.4;
+}
+
+.plantdetail-suggestion-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.plantdetail-suggestion-yes,
+.plantdetail-suggestion-no {
+  flex: 1;
+  border: none;
+  border-radius: 14px;
+  padding: 11px;
+  font-weight: 800;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.plantdetail-suggestion-yes {
+  background: var(--orange);
+  color: white;
+  box-shadow: 0 3px 0 #CC4E1F;
+}
+
+.plantdetail-suggestion-yes:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #CC4E1F;
+}
+
+.plantdetail-suggestion-no {
+  background: white;
+  color: #888;
+  border: 2px solid #E5D5C0;
+}
+
+.plantdetail-suggestion-no:active {
+  transform: scale(0.96);
+}
+
+/* Update careactions grid to fit 4 buttons (Water/Fertilize/Cut/Other) */
+.plantdetail-careactions {
+  grid-template-columns: repeat(4, 1fr);
+}
