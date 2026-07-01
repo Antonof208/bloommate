@@ -101,3 +101,28 @@ export async function getSignedUrls(paths) {
   data.forEach((d, i) => { map[paths[i]] = d.signedUrl })
   return map
 }
+
+export async function getMainPhotosForPlants(plantIds) {
+  if (!plantIds || plantIds.length === 0) return {}
+  const { data, error } = await supabase
+    .from('plant_photos')
+    .select('*')
+    .in('plant_id', plantIds)
+    .order('is_main', { ascending: false })
+    .order('created_at', { ascending: false })
+  if (error) throw error
+
+  const mainByPlant = {}
+  for (const photo of data) {
+    if (!mainByPlant[photo.plant_id]) mainByPlant[photo.plant_id] = photo
+  }
+
+  const paths = Object.values(mainByPlant).map((p) => p.storage_path)
+  const urls = await getSignedUrls(paths)
+
+  const result = {}
+  for (const [plantId, photo] of Object.entries(mainByPlant)) {
+    result[plantId] = urls[photo.storage_path]
+  }
+  return result
+}

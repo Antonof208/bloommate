@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { formatRelativeDay, formatTime } from '../lib/dateUtils'
 import { listPlantPhotos, setMainPhoto, deletePlantPhoto, getSignedUrls } from '../lib/photos'
 import './CareHistory.css'
+import PhotoLightbox from '../components/PhotoLightbox'
 
 const ACTION_META = {
   water: { label: 'Watered', icon: IconDroplet },
@@ -23,6 +24,7 @@ export default function CareHistory() {
   const [error, setError] = useState(null)
   const [confirmingDeleteId, setConfirmingDeleteId] = useState(null)
   const [busyPhotoId, setBusyPhotoId] = useState(null)
+  const [lightboxSrc, setLightboxSrc] = useState(null)
 
   useEffect(() => { fetchData() }, [id])
 
@@ -120,7 +122,13 @@ export default function CareHistory() {
               const isConfirming = confirmingDeleteId === photo.id
               return (
                 <div key={photo.id} className="careh-photo-card">
-                  <img src={photoUrls[photo.storage_path]} alt="Plant photo" className="careh-photo-img" />
+                  <img
+                    src={photoUrls[photo.storage_path]}
+                    alt="Plant photo"
+                    className="careh-photo-img"
+                    onClick={() => setLightboxSrc(photoUrls[photo.storage_path])}
+                    style={{ cursor: 'zoom-in' }}
+                  />
                   <div className="careh-photo-info">
                     <div className="careh-photo-toprow">
                       {isMain && <span className="careh-photo-badge"><IconStarFilled size={12} />Main</span>}
@@ -148,6 +156,7 @@ export default function CareHistory() {
                 </div>
               )
             })}
+            {lightboxSrc && <PhotoLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
           </div>
         ))}
     </div>

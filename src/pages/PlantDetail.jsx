@@ -11,6 +11,7 @@ import { uploadPlantPhoto, getMainPhoto, getSignedUrl } from '../lib/photos'
 import { checkAndUnlockAchievements } from '../lib/achievements'
 import sadMascot from '../assets/mascot/sad.png'
 import './PlantDetail.css'
+import PhotoLightbox from '../components/PhotoLightbox'
 
 const CARE_ACTIONS = [
   { key: 'water', label: 'Water', icon: IconDroplet },
@@ -46,6 +47,7 @@ export default function PlantDetail() {
   const [photoUploading, setPhotoUploading] = useState(false)
   const [photoMessage, setPhotoMessage] = useState(null)
   const fileInputRef = useRef(null)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
 
   useEffect(() => { fetchPlant(); fetchLogs(); fetchMainPhoto() }, [id])
 
@@ -237,12 +239,15 @@ export default function PlantDetail() {
       </div>
 
       <div className="plantdetail-photo-wrap">
-        {displayImage ? <img src={displayImage} alt={plant.nickname} className="plantdetail-image" /> : <div className="plantdetail-noimg">🌿</div>}
+        {displayImage
+          ? <img src={displayImage} alt={plant.nickname} className="plantdetail-image" onClick={() => setLightboxOpen(true)} style={{ cursor: 'zoom-in' }} />
+          : <div className="plantdetail-noimg">🌿</div>}
         <button className="plantdetail-photo-btn" onClick={handlePhotoButtonClick} disabled={photoUploading}>
           <IconCamera size={16} />{photoUploading ? 'Uploading...' : 'Add photo'}
         </button>
         <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileSelected} />
       </div>
+      {lightboxOpen && <PhotoLightbox src={displayImage} onClose={() => setLightboxOpen(false)} />}
       {photoMessage && <p className="plantdetail-photo-message">{photoMessage}</p>}
 
       {(plant.common_name || plant.scientific_name) && (
