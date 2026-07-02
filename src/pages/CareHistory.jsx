@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { IconArrowLeft, IconDroplet, IconLeaf, IconScissors, IconStar, IconStarFilled, IconTrash } from '@tabler/icons-react'
+import { IconArrowLeft, IconDroplet, IconLeaf, IconScissors, IconStar, IconStarFilled, IconTrash, IconMapPin } from '@tabler/icons-react'
 import { supabase } from '../lib/supabase'
 import { formatRelativeDay, formatTime } from '../lib/dateUtils'
 import { listPlantPhotos, setMainPhoto, deletePlantPhoto, getSignedUrls } from '../lib/photos'
 import './CareHistory.css'
 import PhotoLightbox from '../components/PhotoLightbox'
 
-import { IconArrowLeft, IconDroplet, IconLeaf, IconScissors, IconStar, IconStarFilled, IconTrash, IconMapPin } from '@tabler/icons-react'
 
 const ACTION_META = {
   water: { label: 'Watered', icon: IconDroplet },
