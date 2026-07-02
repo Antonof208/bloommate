@@ -10,6 +10,11 @@ import { supabase } from '../lib/supabase'
 import { formatRelativeDay, formatTime, isToday, getLocalDateString } from '../lib/dateUtils'
 import { uploadPlantPhoto, getMainPhoto, getSignedUrl } from '../lib/photos'
 import { checkAndUnlockAchievements } from '../lib/achievements'
+import {
+  WATERING_OPTIONS, SUNLIGHT_OPTIONS, SOIL_TYPE_OPTIONS, HUMIDITY_OPTIONS,
+  PH_LEVEL_OPTIONS, FERTILIZER_FREQUENCY_OPTIONS, PRUNING_FREQUENCY_OPTIONS,
+  CYCLE_OPTIONS, DIFFICULTY_OPTIONS, labelFor,
+} from '../lib/plantFields'
 import sadMascot from '../assets/mascot/sad.png'
 import './PlantDetail.css'
 import PhotoLightbox from '../components/PhotoLightbox'
@@ -28,20 +33,39 @@ function defaultFrequencyDays(wateringText) {
   return WATERING_TO_DAYS[wateringText.toLowerCase().trim()] ?? 3
 }
 
+// Friendly-label lookups: try an exact match against the current dropdown
+// keys first (covers plants added/edited with the new selects), then fall
+// back to keyword matching against older free-text Perenual imports.
 const WATERING_LABELS = {
   frequent: 'Frequent',
   average: 'Average',
   minimum: 'Minimum',
   'soak and dry': 'Soak & Dry',
   'soak & dry': 'Soak & Dry',
+  'bottom water': 'Bottom Water',
   none: 'None',
 }
-function friendlyWatering(raw) {
+function legacyWateringLabel(raw) {
   if (!raw) return null
-  const key = raw.toLowerCase().trim()
+  const key = raw.toLowerCase().trim().replace(/[_-]/g, ' ')
   return WATERING_LABELS[key] || raw
 }
+function displayWatering(raw) {
+  if (!raw) return null
+  const exact = labelFor(WATERING_OPTIONS, raw)
+  if (exact && exact !== raw) return exact
+  return legacyWateringLabel(raw)
+}
 
+const SUNLIGHT_LABELS = {
+  'full sun': 'Full Sun',
+  'sun part shade': 'Sun / Part Shade',
+  'part shade': 'Part Shade',
+  'full shade': 'Full Shade',
+  'bright indirect': 'Bright Indirect',
+  'low light': 'Low Light',
+  'morning sun': 'Morning Sun',
+}
 const SUNLIGHT_KEYWORDS = [
   { match: 'full sun', label: 'Full Sun' },
   { match: 'part shade', label: 'Part Shade' },
@@ -52,13 +76,20 @@ const SUNLIGHT_KEYWORDS = [
   { match: 'indirect', label: 'Indirect' },
   { match: 'shade', label: 'Low Light' },
 ]
-function friendlySunlight(raw) {
+function legacySunlightLabel(raw) {
   if (!raw) return null
-  const key = raw.toLowerCase()
+  const key = raw.toLowerCase().trim().replace(/[_-]/g, ' ').replace(/\s+/g, ' ')
+  if (SUNLIGHT_LABELS[key]) return SUNLIGHT_LABELS[key]
   for (const { match, label } of SUNLIGHT_KEYWORDS) {
     if (key.includes(match)) return label
   }
   return raw
+}
+function displaySunlight(raw) {
+  if (!raw) return null
+  const exact = labelFor(SUNLIGHT_OPTIONS, raw)
+  if (exact && exact !== raw) return exact
+  return legacySunlightLabel(raw)
 }
 
 const DIFFICULTY_META = {
@@ -72,6 +103,13 @@ function difficultyBadge(careLevel) {
   if (!careLevel) return null
   const key = careLevel.toLowerCase().trim()
   return DIFFICULTY_META[key] || { emoji: '🟢', label: careLevel }
+}
+
+function toxicityBadge(plant) {
+  if (plant.poisonous_to_pets === null || plant.poisonous_to_pets === undefined) return null
+  return plant.poisonous_to_pets
+    ? { emoji: '⚠️', label: 'Toxic to pets' }
+    : { emoji: '🐶', label: 'Safe for pets' }
 }
 
 function formatHour(hour) {
@@ -107,18 +145,18 @@ export default function PlantDetail() {
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [customOpen, setCustomOpen] = useState(false)
 
-  // NEW: passport accordion
+  // passport accordion
   const [profileOpen, setProfileOpen] = useState(false)
   const profileRef = useRef(null)
 
-  // NEW: Other logging modal
+  // Other logging modal
   const [otherModalOpen, setOtherModalOpen] = useState(false)
   const [otherSelectedChip, setOtherSelectedChip] = useState(null)
   const [otherCustomText, setOtherCustomText] = useState('')
   const [otherSaving, setOtherSaving] = useState(false)
   const [otherError, setOtherError] = useState(null)
 
-  // NEW: smart suggestion banner
+  // smart suggestion banner
   const [suggestionBanner, setSuggestionBanner] = useState({ visible: false, text: '' })
 
   useEffect(() => { fetchPlant(); fetchLogs(); fetchMainPhoto() }, [id])
@@ -192,7 +230,6 @@ export default function PlantDetail() {
     }
   }
 
-  // NEW: log an "Other" custom action
   async function handleLogOther() {
     const label = otherCustomText.trim() || otherSelectedChip
     if (!label) return
@@ -227,7 +264,6 @@ export default function PlantDetail() {
     }
   }
 
-  // NEW: accept the smart suggestion — turns on the plant's reminder at 14 days
   async function handleAcceptSuggestion() {
     const updates = {
       reminder_enabled: true,
@@ -268,7 +304,24 @@ export default function PlantDetail() {
   }
 
   function startEdit() {
-    setForm({ nickname: plant.nickname || '', common_name: plant.common_name || '', scientific_name: plant.scientific_name || '', watering: plant.watering || '', sunlight: plant.sunlight || '', cycle: plant.cycle || '', care_level: plant.care_level || '' })
+    setForm({
+      nickname: plant.nickname || '',
+      common_name: plant.common_name || '',
+      scientific_name: plant.scientific_name || '',
+      watering: plant.watering || '',
+      sunlight: plant.sunlight || '',
+      soil_type: plant.soil_type || '',
+      humidity: plant.humidity || '',
+      ph_level: plant.ph_level || '',
+      temp_min: plant.temp_min ?? '',
+      temp_max: plant.temp_max ?? '',
+      fertilizer_frequency: plant.fertilizer_frequency || '',
+      pruning_frequency: plant.pruning_frequency || '',
+      cycle: plant.cycle || '',
+      care_level: plant.care_level || '',
+      poisonous_to_pets: Boolean(plant.poisonous_to_pets),
+      poisonous_to_humans: Boolean(plant.poisonous_to_humans),
+    })
     setSaveError(null); setEditing(true)
   }
 
@@ -279,7 +332,24 @@ export default function PlantDetail() {
     if (!form.nickname.trim()) return
     setSaving(true); setSaveError(null)
     try {
-      const { data, error } = await supabase.from('plants').update({ nickname: form.nickname.trim(), common_name: form.common_name || null, scientific_name: form.scientific_name || null, watering: form.watering || null, sunlight: form.sunlight || null, cycle: form.cycle || null, care_level: form.care_level || null }).eq('id', id).select().single()
+      const { data, error } = await supabase.from('plants').update({
+        nickname: form.nickname.trim(),
+        common_name: form.common_name || null,
+        scientific_name: form.scientific_name || null,
+        watering: form.watering || null,
+        sunlight: form.sunlight || null,
+        soil_type: form.soil_type || null,
+        humidity: form.humidity || null,
+        ph_level: form.ph_level || null,
+        temp_min: form.temp_min === '' ? null : Number(form.temp_min),
+        temp_max: form.temp_max === '' ? null : Number(form.temp_max),
+        fertilizer_frequency: form.fertilizer_frequency || null,
+        pruning_frequency: form.pruning_frequency || null,
+        cycle: form.cycle || null,
+        care_level: form.care_level || null,
+        poisonous_to_pets: form.poisonous_to_pets,
+        poisonous_to_humans: form.poisonous_to_humans,
+      }).eq('id', id).select().single()
       if (error) throw error
       setPlant(data); setEditing(false)
     } catch (err) {
@@ -335,13 +405,83 @@ export default function PlantDetail() {
           <h1>Edit plant</h1>
         </div>
         <form className="plantdetail-form" onSubmit={handleSaveEdit}>
+          <p className="plantdetail-form-section-title">Basic info</p>
           <label>Nickname *<input type="text" value={form.nickname} onChange={(e) => updateField('nickname', e.target.value)} required /></label>
           <label>Common name<input type="text" value={form.common_name} onChange={(e) => updateField('common_name', e.target.value)} /></label>
           <label>Scientific name<input type="text" value={form.scientific_name} onChange={(e) => updateField('scientific_name', e.target.value)} /></label>
-          <label>Watering<input type="text" value={form.watering} onChange={(e) => updateField('watering', e.target.value)} placeholder="e.g. Average" /></label>
-          <label>Sunlight<input type="text" value={form.sunlight} onChange={(e) => updateField('sunlight', e.target.value)} placeholder="e.g. Full sun" /></label>
-          <label>Cycle<input type="text" value={form.cycle} onChange={(e) => updateField('cycle', e.target.value)} placeholder="e.g. Perennial" /></label>
-          <label>Care level<input type="text" value={form.care_level} onChange={(e) => updateField('care_level', e.target.value)} placeholder="e.g. Easy" /></label>
+
+          <p className="plantdetail-form-section-title">Plant passport</p>
+          <label>💧 Watering
+            <select value={form.watering} onChange={(e) => updateField('watering', e.target.value)}>
+              <option value="">— Not set —</option>
+              {WATERING_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </label>
+          <label>☀️ Sunlight
+            <select value={form.sunlight} onChange={(e) => updateField('sunlight', e.target.value)}>
+              <option value="">— Not set —</option>
+              {SUNLIGHT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </label>
+          <label>🌱 Soil type
+            <select value={form.soil_type} onChange={(e) => updateField('soil_type', e.target.value)}>
+              <option value="">— Not set —</option>
+              {SOIL_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </label>
+          <label>💨 Humidity
+            <select value={form.humidity} onChange={(e) => updateField('humidity', e.target.value)}>
+              <option value="">— Not set —</option>
+              {HUMIDITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </label>
+          <label>pH level
+            <select value={form.ph_level} onChange={(e) => updateField('ph_level', e.target.value)}>
+              <option value="">— Not set —</option>
+              {PH_LEVEL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </label>
+
+          <p className="plantdetail-form-section-title">Extended profile</p>
+          <div className="plantdetail-number-row">
+            <label>Temp min (°C)<input type="number" value={form.temp_min} onChange={(e) => updateField('temp_min', e.target.value)} placeholder="e.g. 18" /></label>
+            <label>Temp max (°C)<input type="number" value={form.temp_max} onChange={(e) => updateField('temp_max', e.target.value)} placeholder="e.g. 24" /></label>
+          </div>
+          <label>Fertilizer frequency
+            <select value={form.fertilizer_frequency} onChange={(e) => updateField('fertilizer_frequency', e.target.value)}>
+              <option value="">— Not set —</option>
+              {FERTILIZER_FREQUENCY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </label>
+          <label>Pruning frequency
+            <select value={form.pruning_frequency} onChange={(e) => updateField('pruning_frequency', e.target.value)}>
+              <option value="">— Not set —</option>
+              {PRUNING_FREQUENCY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </label>
+          <label>Cycle
+            <select value={form.cycle} onChange={(e) => updateField('cycle', e.target.value)}>
+              <option value="">— Not set —</option>
+              {CYCLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </label>
+          <label>Difficulty
+            <select value={form.care_level} onChange={(e) => updateField('care_level', e.target.value)}>
+              <option value="">— Not set —</option>
+              {DIFFICULTY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </label>
+
+          <p className="plantdetail-form-section-title">Toxicity</p>
+          <label className="plantdetail-checkbox-row">
+            <input type="checkbox" checked={form.poisonous_to_pets} onChange={(e) => updateField('poisonous_to_pets', e.target.checked)} />
+            Poisonous to pets
+          </label>
+          <label className="plantdetail-checkbox-row">
+            <input type="checkbox" checked={form.poisonous_to_humans} onChange={(e) => updateField('poisonous_to_humans', e.target.checked)} />
+            Poisonous to humans
+          </label>
+
           {saveError && <p className="plantdetail-error">{saveError}</p>}
           <button type="submit" className="plantdetail-save-btn" disabled={saving}><IconCheck size={18} />{saving ? 'Saving...' : 'Save changes'}</button>
         </form>
@@ -358,9 +498,16 @@ export default function PlantDetail() {
   const displayImage = mainPhotoUrl || plant.image_url
 
   const diffBadge = difficultyBadge(plant.care_level)
-  const wateringFriendly = friendlyWatering(plant.watering)
-  const sunlightFriendly = friendlySunlight(plant.sunlight)
+  const toxBadge = toxicityBadge(plant)
+  const wateringFriendly = displayWatering(plant.watering)
+  const sunlightFriendly = displaySunlight(plant.sunlight)
   const wateringDays = plant.watering ? defaultFrequencyDays(plant.watering) : null
+  const soilFriendly = labelFor(SOIL_TYPE_OPTIONS, plant.soil_type)
+  const humidityFriendly = labelFor(HUMIDITY_OPTIONS, plant.humidity)
+  const phFriendly = labelFor(PH_LEVEL_OPTIONS, plant.ph_level)
+  const fertilizerFriendly = labelFor(FERTILIZER_FREQUENCY_OPTIONS, plant.fertilizer_frequency)
+  const pruningFriendly = labelFor(PRUNING_FREQUENCY_OPTIONS, plant.pruning_frequency)
+  const hasTempRange = plant.temp_min != null || plant.temp_max != null
 
   return (
     <div className="plantdetail-page">
@@ -378,9 +525,10 @@ export default function PlantDetail() {
           ? <img src={displayImage} alt={plant.nickname} className="plantdetail-image" onClick={() => setLightboxOpen(true)} style={{ cursor: 'zoom-in' }} />
           : <div className="plantdetail-noimg">🌿</div>}
 
-        {diffBadge && (
+        {(diffBadge || toxBadge) && (
           <div className="plantdetail-badge-topleft">
-            <span className="plantdetail-badge">{diffBadge.emoji} {diffBadge.label}</span>
+            {diffBadge && <span className="plantdetail-badge">{diffBadge.emoji} {diffBadge.label}</span>}
+            {toxBadge && <span className="plantdetail-badge">{toxBadge.emoji} {toxBadge.label}</span>}
           </div>
         )}
 
@@ -414,12 +562,12 @@ export default function PlantDetail() {
         <button className="plantdetail-passport-card" onClick={scrollToProfile}>
           <div className="plantdetail-passport-emoji">🌱</div>
           <p className="plantdetail-passport-label">Soil</p>
-          <p className="plantdetail-passport-value">—</p>
+          <p className="plantdetail-passport-value">{soilFriendly || '—'}</p>
         </button>
         <button className="plantdetail-passport-card" onClick={scrollToProfile}>
           <div className="plantdetail-passport-emoji">💨</div>
           <p className="plantdetail-passport-label">Humidity</p>
-          <p className="plantdetail-passport-value">—</p>
+          <p className="plantdetail-passport-value">{humidityFriendly || '—'}</p>
         </button>
       </div>
 
@@ -439,22 +587,31 @@ export default function PlantDetail() {
               <strong>Sunlight:</strong> {sunlightFriendly || 'Information not added yet'}
             </div>
             <div className="plantdetail-accordion-item">
+              <strong>Soil type:</strong> {soilFriendly || 'Information not added yet'}
+            </div>
+            <div className="plantdetail-accordion-item">
+              <strong>Soil pH:</strong> {phFriendly || 'Information not added yet'}
+            </div>
+            <div className="plantdetail-accordion-item">
+              <strong>Humidity:</strong> {humidityFriendly || 'Information not added yet'}
+            </div>
+            <div className="plantdetail-accordion-item">
+              <strong>Temperature range:</strong> {hasTempRange ? `${plant.temp_min ?? '?'}–${plant.temp_max ?? '?'}°C` : 'Information not added yet'}
+            </div>
+            <div className="plantdetail-accordion-item">
+              <strong>Fertilizer schedule:</strong> {fertilizerFriendly || 'Information not added yet'}
+            </div>
+            <div className="plantdetail-accordion-item">
+              <strong>Pruning advice:</strong> {pruningFriendly || 'Information not added yet'}
+            </div>
+            <div className="plantdetail-accordion-item">
               <strong>Cycle:</strong> {plant.cycle || 'Information not added yet'}
             </div>
             <div className="plantdetail-accordion-item">
               <strong>Care level:</strong> {plant.care_level || 'Information not added yet'}
             </div>
             <div className="plantdetail-accordion-item">
-              <strong>Soil pH:</strong> Information not added yet
-            </div>
-            <div className="plantdetail-accordion-item">
-              <strong>Temperature range:</strong> Information not added yet
-            </div>
-            <div className="plantdetail-accordion-item">
-              <strong>Fertilizer schedule:</strong> Information not added yet
-            </div>
-            <div className="plantdetail-accordion-item">
-              <strong>Pruning advice:</strong> Information not added yet
+              <strong>Toxicity:</strong> {toxBadge ? `${toxBadge.emoji} ${toxBadge.label}` : 'Information not added yet'}
             </div>
           </div>
         )}

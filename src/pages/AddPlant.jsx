@@ -3,10 +3,25 @@ import { useNavigate } from 'react-router-dom'
 import { IconSearch, IconArrowLeft, IconPlus, IconCheck } from '@tabler/icons-react'
 import { supabase } from '../lib/supabase'
 import { searchPlants, getPlantDetails } from '../lib/perenual'
+import {
+  WATERING_OPTIONS, SUNLIGHT_OPTIONS, SOIL_TYPE_OPTIONS, HUMIDITY_OPTIONS,
+  PH_LEVEL_OPTIONS, FERTILIZER_FREQUENCY_OPTIONS, PRUNING_FREQUENCY_OPTIONS,
+  CYCLE_OPTIONS, DIFFICULTY_OPTIONS,
+  mapPerenualWatering, mapPerenualSunlight, mapPerenualCycle, mapPerenualPhLevel,
+} from '../lib/plantFields'
 import AchievementToast from '../components/AchievementToast'
 import thinkingMascot    from '../assets/mascot/thinking.png'
 import celebratingMascot from '../assets/mascot/celebrating.png'
 import './AddPlant.css'
+
+const EMPTY_FORM = {
+  nickname: '', common_name: '', scientific_name: '',
+  perenual_id: null, image_url: '',
+  watering: '', sunlight: '', soil_type: '', humidity: '', ph_level: '',
+  temp_min: '', temp_max: '', fertilizer_frequency: '', pruning_frequency: '',
+  cycle: '', care_level: '',
+  poisonous_to_pets: false, poisonous_to_humans: false,
+}
 
 export default function AddPlant() {
   const navigate = useNavigate()
@@ -15,7 +30,7 @@ export default function AddPlant() {
   const [searching, setSearching] = useState(false)
   const [searchError, setSearchError] = useState(null)
   const [mode, setMode] = useState('search')
-  const [form, setForm] = useState({ nickname: '', common_name: '', scientific_name: '', perenual_id: null, image_url: '', watering: '', sunlight: '', cycle: '', care_level: '' })
+  const [form, setForm] = useState(EMPTY_FORM)
   const [loadingDetails, setLoadingDetails] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -38,14 +53,33 @@ export default function AddPlant() {
     setLoadingDetails(true)
     try {
       const details = await getPlantDetails(result.id)
-      setForm({ nickname: details.common_name || '', common_name: details.common_name || '', scientific_name: details.scientific_name?.[0] || '', perenual_id: details.id, image_url: details.default_image?.medium_url || details.default_image?.regular_url || '', watering: details.watering || '', sunlight: Array.isArray(details.sunlight) ? details.sunlight.join(', ') : (details.sunlight || ''), cycle: details.cycle || '', care_level: details.care_level || '' })
+      setForm({
+        nickname: details.common_name || '',
+        common_name: details.common_name || '',
+        scientific_name: details.scientific_name?.[0] || '',
+        perenual_id: details.id,
+        image_url: details.default_image?.medium_url || details.default_image?.regular_url || '',
+        watering: mapPerenualWatering(details.watering) || '',
+        sunlight: mapPerenualSunlight(details.sunlight) || '',
+        soil_type: '',
+        humidity: '',
+        ph_level: mapPerenualPhLevel(details) || '',
+        temp_min: '',
+        temp_max: '',
+        fertilizer_frequency: '',
+        pruning_frequency: '',
+        cycle: mapPerenualCycle(details.cycle) || '',
+        care_level: details.care_level || '',
+        poisonous_to_pets: Boolean(details.poisonous_to_pets),
+        poisonous_to_humans: Boolean(details.poisonous_to_humans),
+      })
       setMode('form')
     } catch (err) { setSearchError("Couldn't load details. Try another or add manually.") }
     finally { setLoadingDetails(false) }
   }
 
   function startManualEntry() {
-    setForm({ nickname: '', common_name: '', scientific_name: '', perenual_id: null, image_url: '', watering: '', sunlight: '', cycle: '', care_level: '' })
+    setForm(EMPTY_FORM)
     setMode('form')
   }
 
@@ -57,7 +91,27 @@ export default function AddPlant() {
     setSaving(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      const { error } = await supabase.from('plants').insert({ user_id: user.id, nickname: form.nickname.trim(), common_name: form.common_name || null, scientific_name: form.scientific_name || null, perenual_id: form.perenual_id, image_url: form.image_url || null, watering: form.watering || null, sunlight: form.sunlight || null, cycle: form.cycle || null, care_level: form.care_level || null })
+      const { error } = await supabase.from('plants').insert({
+        user_id: user.id,
+        nickname: form.nickname.trim(),
+        common_name: form.common_name || null,
+        scientific_name: form.scientific_name || null,
+        perenual_id: form.perenual_id,
+        image_url: form.image_url || null,
+        watering: form.watering || null,
+        sunlight: form.sunlight || null,
+        soil_type: form.soil_type || null,
+        humidity: form.humidity || null,
+        ph_level: form.ph_level || null,
+        temp_min: form.temp_min === '' ? null : Number(form.temp_min),
+        temp_max: form.temp_max === '' ? null : Number(form.temp_max),
+        fertilizer_frequency: form.fertilizer_frequency || null,
+        pruning_frequency: form.pruning_frequency || null,
+        cycle: form.cycle || null,
+        care_level: form.care_level || null,
+        poisonous_to_pets: form.poisonous_to_pets,
+        poisonous_to_humans: form.poisonous_to_humans,
+      })
       if (error) throw error
       const newAchievements = await checkNewAchievements(user.id)
       const delay = newAchievements.length > 0 ? 3000 : 1500
@@ -110,10 +164,84 @@ export default function AddPlant() {
         <form className="addplant-form" onSubmit={handleSave}>
           {loadingDetails && <p>Loading plant info...</p>}
           {form.image_url && <img src={form.image_url} alt={form.common_name} className="addplant-form-image" />}
+
+          <p className="addplant-form-section-title">Basic info</p>
           <label>Nickname *<input type="text" value={form.nickname} onChange={(e) => updateField('nickname', e.target.value)} placeholder="What do you call this plant?" required /></label>
           <label>Common name<input type="text" value={form.common_name} onChange={(e) => updateField('common_name', e.target.value)} /></label>
-          <label>Watering<input type="text" value={form.watering} onChange={(e) => updateField('watering', e.target.value)} placeholder="e.g. Average" /></label>
-          <label>Sunlight<input type="text" value={form.sunlight} onChange={(e) => updateField('sunlight', e.target.value)} placeholder="e.g. Full sun" /></label>
+          <label>Scientific name<input type="text" value={form.scientific_name} onChange={(e) => updateField('scientific_name', e.target.value)} /></label>
+
+          <p className="addplant-form-section-title">Plant passport</p>
+          <label>💧 Watering
+            <select value={form.watering} onChange={(e) => updateField('watering', e.target.value)}>
+              <option value="">— Not set —</option>
+              {WATERING_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </label>
+          <label>☀️ Sunlight
+            <select value={form.sunlight} onChange={(e) => updateField('sunlight', e.target.value)}>
+              <option value="">— Not set —</option>
+              {SUNLIGHT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </label>
+          <label>🌱 Soil type
+            <select value={form.soil_type} onChange={(e) => updateField('soil_type', e.target.value)}>
+              <option value="">— Not set —</option>
+              {SOIL_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </label>
+          <label>💨 Humidity
+            <select value={form.humidity} onChange={(e) => updateField('humidity', e.target.value)}>
+              <option value="">— Not set —</option>
+              {HUMIDITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </label>
+          <label>pH level
+            <select value={form.ph_level} onChange={(e) => updateField('ph_level', e.target.value)}>
+              <option value="">— Not set —</option>
+              {PH_LEVEL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </label>
+
+          <p className="addplant-form-section-title">Extended profile</p>
+          <div className="addplant-number-row">
+            <label>Temp min (°C)<input type="number" value={form.temp_min} onChange={(e) => updateField('temp_min', e.target.value)} placeholder="e.g. 18" /></label>
+            <label>Temp max (°C)<input type="number" value={form.temp_max} onChange={(e) => updateField('temp_max', e.target.value)} placeholder="e.g. 24" /></label>
+          </div>
+          <label>Fertilizer frequency
+            <select value={form.fertilizer_frequency} onChange={(e) => updateField('fertilizer_frequency', e.target.value)}>
+              <option value="">— Not set —</option>
+              {FERTILIZER_FREQUENCY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </label>
+          <label>Pruning frequency
+            <select value={form.pruning_frequency} onChange={(e) => updateField('pruning_frequency', e.target.value)}>
+              <option value="">— Not set —</option>
+              {PRUNING_FREQUENCY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </label>
+          <label>Cycle
+            <select value={form.cycle} onChange={(e) => updateField('cycle', e.target.value)}>
+              <option value="">— Not set —</option>
+              {CYCLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </label>
+          <label>Difficulty
+            <select value={form.care_level} onChange={(e) => updateField('care_level', e.target.value)}>
+              <option value="">— Not set —</option>
+              {DIFFICULTY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </label>
+
+          <p className="addplant-form-section-title">Toxicity</p>
+          <label className="addplant-checkbox-row">
+            <input type="checkbox" checked={form.poisonous_to_pets} onChange={(e) => updateField('poisonous_to_pets', e.target.checked)} />
+            Poisonous to pets
+          </label>
+          <label className="addplant-checkbox-row">
+            <input type="checkbox" checked={form.poisonous_to_humans} onChange={(e) => updateField('poisonous_to_humans', e.target.checked)} />
+            Poisonous to humans
+          </label>
+
           {searchError && <p className="addplant-error">{searchError}</p>}
           <button type="submit" className="addplant-save-btn" disabled={saving}><IconCheck size={18} />{saving ? 'Saving...' : 'Save plant'}</button>
         </form>

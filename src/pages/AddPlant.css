@@ -218,3 +218,54 @@
   color: var(--green-dark);
   font-size: 1.3rem;
 }
+
+/* ===== NEW: form section titles ===== */
+.addplant-form-section-title {
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--green-dark);
+  margin: 10px 0 -4px;
+}
+
+/* ===== NEW: select dropdowns match input styling ===== */
+.addplant-form select {
+  border: 2px solid #E5F5EA;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 1rem;
+  font-family: inherit;
+  color: #1A1A1A;
+  background: white;
+}
+
+/* ===== NEW: temp min/max side by side ===== */
+.addplant-number-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.addplant-number-row input {
+  border: 2px solid #E5F5EA;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 1rem;
+  font-family: inherit;
+  width: 100%;
+}
+
+/* ===== NEW: toxicity checkboxes ===== */
+.addplant-checkbox-row {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 10px !important;
+}
+
+.addplant-checkbox-row input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--green);
+  flex-shrink: 0;
+}
