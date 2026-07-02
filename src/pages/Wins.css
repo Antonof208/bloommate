@@ -43,7 +43,7 @@
 }
 .wins-cal-day {
   aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
-  font-size: 0.8rem; font-weight: 700; color: #555;
+  font-size: 1.05rem; font-weight: 700; color: #555;
   border-radius: 50%; transition: background 0.15s;
 }
 .wins-cal-day.has-log {
@@ -76,10 +76,10 @@
 .wins-badge.is-locked { opacity: 0.6; }
 
 .wins-badge-img-wrap {
-  position: relative; width: 80px; height: 80px;
+  position: relative; width: 100px; height: 100px;
 }
 .wins-badge-img {
-  width: 80px; height: 80px; object-fit: contain;
+  width: 100px; height: 100px; object-fit: contain;
 }
 .wins-badge.is-locked .wins-badge-img {
   filter: grayscale(100%);

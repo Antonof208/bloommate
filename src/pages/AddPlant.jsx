@@ -10,6 +10,7 @@ import {
   mapPerenualWatering, mapPerenualSunlight, mapPerenualCycle, mapPerenualPhLevel,
 } from '../lib/plantFields'
 import AchievementToast from '../components/AchievementToast'
+import { checkAndUnlockAchievements, ACHIEVEMENTS } from '../lib/achievements'
 import thinkingMascot    from '../assets/mascot/thinking.png'
 import celebratingMascot from '../assets/mascot/celebrating.png'
 import './AddPlant.css'
@@ -113,9 +114,11 @@ export default function AddPlant() {
         poisonous_to_humans: form.poisonous_to_humans,
       })
       if (error) throw error
-      const newAchievements = await checkNewAchievements(user.id)
-      const delay = newAchievements.length > 0 ? 3000 : 1500
-      if (newAchievements.length > 0) setToastAchievement(newAchievements[0])
+      const unlockedKeys = await checkAndUnlockAchievements(user.id)
+      const delay = unlockedKeys.length > 0 ? 3000 : 1500
+      if (unlockedKeys.length > 0) {
+        setToastAchievement(ACHIEVEMENTS.find((a) => a.key === unlockedKeys[0]))
+      }
       setSaved(true)
       setTimeout(() => navigate('/'), delay)
     } catch (err) {

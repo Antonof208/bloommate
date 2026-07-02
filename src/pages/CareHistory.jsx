@@ -7,10 +7,13 @@ import { listPlantPhotos, setMainPhoto, deletePlantPhoto, getSignedUrls } from '
 import './CareHistory.css'
 import PhotoLightbox from '../components/PhotoLightbox'
 
+import { IconArrowLeft, IconDroplet, IconLeaf, IconScissors, IconStar, IconStarFilled, IconTrash, IconMapPin } from '@tabler/icons-react'
+
 const ACTION_META = {
   water: { label: 'Watered', icon: IconDroplet },
   fertilize: { label: 'Fertilized', icon: IconLeaf },
   cut: { label: 'Cut / pruned', icon: IconScissors },
+  custom: { label: 'Other', icon: IconMapPin },
 }
 
 export default function CareHistory() {
@@ -106,12 +109,13 @@ export default function CareHistory() {
             {group.items.map((ev) => {
               if (ev.type === 'log') {
                 const log = ev.data
-                const meta = ACTION_META[log.action]
+                const meta = ACTION_META[log.action] || ACTION_META.custom
                 const Icon = meta.icon
+                const label = log.action === 'custom' ? (log.custom_action || meta.label) : meta.label
                 return (
                   <div key={log.id} className="careh-row">
                     <div className="careh-row-icon"><Icon size={18} /></div>
-                    <span className="careh-row-label">{meta.label}</span>
+                    <span className="careh-row-label">{label}</span>
                     <span className="careh-row-time">{formatTime(log.logged_at)}</span>
                   </div>
                 )
