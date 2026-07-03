@@ -120,6 +120,12 @@ function toxicityBadge(plant) {
     : { emoji: '🐶', label: 'Safe for pets' }
 }
 
+function humanToxicityBadge(plant) {
+  // Only show a badge when the plant IS toxic to humans — stays hidden when safe/unknown.
+  if (!plant.poisonous_to_humans) return null
+  return { emoji: '☣️', label: 'Toxic to humans' }
+}
+
 function formatHour(hour) {
   const h = hour % 12 === 0 ? 12 : hour % 12
   const suffix = hour < 12 ? 'AM' : 'PM'
@@ -507,6 +513,7 @@ export default function PlantDetail() {
 
   const diffBadge = difficultyBadge(plant.care_level)
   const toxBadge = toxicityBadge(plant)
+  const humanToxBadge = humanToxicityBadge(plant)
   const wateringFriendly = displayWatering(plant.watering)
   const sunlightFriendly = displaySunlight(plant.sunlight)
   const wateringDays = plant.watering ? defaultFrequencyDays(plant.watering) : null
@@ -533,10 +540,11 @@ export default function PlantDetail() {
           ? <img src={displayImage} alt={plant.nickname} className="plantdetail-image" onClick={() => setLightboxOpen(true)} style={{ cursor: 'zoom-in' }} />
           : <div className="plantdetail-noimg">🌿</div>}
 
-        {(diffBadge || toxBadge) && (
+        {(diffBadge || toxBadge || humanToxBadge) && (
           <div className="plantdetail-badge-topleft">
             {diffBadge && <span className="plantdetail-badge">{diffBadge.emoji} {diffBadge.label}</span>}
             {toxBadge && <span className="plantdetail-badge">{toxBadge.emoji} {toxBadge.label}</span>}
+            {humanToxBadge && <span className="plantdetail-badge">{humanToxBadge.emoji} {humanToxBadge.label}</span>}
           </div>
         )}
 
@@ -619,7 +627,10 @@ export default function PlantDetail() {
               <strong>Care level:</strong> {plant.care_level || 'Information not added yet'}
             </div>
             <div className="plantdetail-accordion-item">
-              <strong>Toxicity:</strong> {toxBadge ? `${toxBadge.emoji} ${toxBadge.label}` : 'Information not added yet'}
+              <strong>Toxicity to pets:</strong> {toxBadge ? `${toxBadge.emoji} ${toxBadge.label}` : 'Information not added yet'}
+            </div>
+            <div className="plantdetail-accordion-item">
+              <strong>Toxicity to humans:</strong> {humanToxBadge ? `${humanToxBadge.emoji} ${humanToxBadge.label}` : 'Not toxic to humans'}
             </div>
             {plant.care_guide && Object.keys(plant.care_guide).length > 0 && (
               <div className="plantdetail-careguide">
