@@ -25,6 +25,14 @@ const CARE_ACTIONS = [
   { key: 'cut', label: 'Cut', icon: IconScissors },
 ]
 
+// Perenual's care guide can return several topic types; we only show
+// the ones we have friendly labels for, in this order.
+const CARE_GUIDE_META = [
+  { key: 'watering', emoji: '💧', label: 'Watering' },
+  { key: 'sunlight', emoji: '☀️', label: 'Sunlight' },
+  { key: 'pruning', emoji: '✂️', label: 'Pruning' },
+]
+
 const OTHER_CHIPS = ['Repotting', 'Misting', 'Pest Control', 'Cleaning leaves', 'Propagation', 'Deadheading']
 
 const WATERING_TO_DAYS = { 'frequent': 1, 'average': 3, 'minimum': 7, 'none': null }
@@ -613,6 +621,17 @@ export default function PlantDetail() {
             <div className="plantdetail-accordion-item">
               <strong>Toxicity:</strong> {toxBadge ? `${toxBadge.emoji} ${toxBadge.label}` : 'Information not added yet'}
             </div>
+            {plant.care_guide && Object.keys(plant.care_guide).length > 0 && (
+              <div className="plantdetail-careguide">
+                <p className="plantdetail-careguide-title">🌿 More about this plant</p>
+                {CARE_GUIDE_META.filter(({ key }) => plant.care_guide[key]).map(({ key, emoji, label }) => (
+                  <div key={key} className="plantdetail-careguide-item">
+                    <p className="plantdetail-careguide-heading">{emoji} {label}</p>
+                    <p className="plantdetail-careguide-text">{plant.care_guide[key]}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

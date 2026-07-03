@@ -2,12 +2,13 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { IconSearch, IconArrowLeft, IconPlus, IconCheck } from '@tabler/icons-react'
 import { supabase } from '../lib/supabase'
-import { searchPlants, getPlantDetails } from '../lib/perenual'
+import { searchPlants, getPlantDetails, getCareGuide } from '../lib/perenual'
 import {
   WATERING_OPTIONS, SUNLIGHT_OPTIONS, SOIL_TYPE_OPTIONS, HUMIDITY_OPTIONS,
   PH_LEVEL_OPTIONS, FERTILIZER_FREQUENCY_OPTIONS, PRUNING_FREQUENCY_OPTIONS,
   CYCLE_OPTIONS, DIFFICULTY_OPTIONS,
   mapPerenualWatering, mapPerenualSunlight, mapPerenualCycle, mapPerenualPhLevel,
+  mapPerenualSoil, mapPerenualPruning,
 } from '../lib/plantFields'
 import AchievementToast from '../components/AchievementToast'
 import { checkAndUnlockAchievements, ACHIEVEMENTS } from '../lib/achievements'
@@ -17,7 +18,7 @@ import './AddPlant.css'
 
 const EMPTY_FORM = {
   nickname: '', common_name: '', scientific_name: '',
-  perenual_id: null, image_url: '',
+  perenual_id: null, image_url: '', care_guide: null,
   watering: '', sunlight: '', soil_type: '', humidity: '', ph_level: '',
   temp_min: '', temp_max: '', fertilizer_frequency: '', pruning_frequency: '',
   cycle: '', care_level: '',
@@ -54,6 +55,7 @@ export default function AddPlant() {
     setLoadingDetails(true)
     try {
       const details = await getPlantDetails(result.id)
+      const careGuide = await getCareGuide(result.id)
       setForm({
         nickname: details.common_name || '',
         common_name: details.common_name || '',
@@ -62,15 +64,16 @@ export default function AddPlant() {
         image_url: details.default_image?.medium_url || details.default_image?.regular_url || '',
         watering: mapPerenualWatering(details.watering) || '',
         sunlight: mapPerenualSunlight(details.sunlight) || '',
-        soil_type: '',
+        soil_type: mapPerenualSoil(details.soil) || '',
         humidity: '',
         ph_level: mapPerenualPhLevel(details) || '',
         temp_min: '',
         temp_max: '',
         fertilizer_frequency: '',
-        pruning_frequency: '',
+        pruning_frequency: mapPerenualPruning(details.pruning_count) || '',
         cycle: mapPerenualCycle(details.cycle) || '',
         care_level: details.care_level || '',
+        care_guide: careGuide,
         poisonous_to_pets: Boolean(details.poisonous_to_pets),
         poisonous_to_humans: Boolean(details.poisonous_to_humans),
       })
@@ -99,6 +102,7 @@ export default function AddPlant() {
         scientific_name: form.scientific_name || null,
         perenual_id: form.perenual_id,
         image_url: form.image_url || null,
+        care_guide: form.care_guide || null,
         watering: form.watering || null,
         sunlight: form.sunlight || null,
         soil_type: form.soil_type || null,

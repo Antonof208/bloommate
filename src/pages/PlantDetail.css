@@ -1133,3 +1133,24 @@
   accent-color: var(--green);
   flex-shrink: 0;
 }
+
+.plantdetail-careguide {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+}
+.plantdetail-careguide-title {
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.plantdetail-careguide-item {
+  margin-bottom: 12px;
+}
+.plantdetail-careguide-heading {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+.plantdetail-careguide-text {
+  color: #555;
+  line-height: 1.5;
+}

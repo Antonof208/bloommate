@@ -79,9 +79,10 @@ export function labelFor(options, value) {
 }
 
 // ---- Perenual API -> our normalized dropdown keys ----
-// Fields the API doesn't reliably provide (soil_type, humidity, temp,
-// fertilizer_frequency, pruning_frequency) are intentionally left unmapped;
-// the user fills those in manually via Edit.
+// humidity and fertilizer_frequency are intentionally left unmapped —
+// Perenual's API has no fields for either, on any tier. Users fill those
+// in manually via Edit. soil_type and pruning_frequency ARE mappable
+// (see mapPerenualSoil / mapPerenualPruning below).
 
 export function mapPerenualWatering(raw) {
   if (!raw) return null
@@ -124,4 +125,34 @@ export function mapPerenualPhLevel(details) {
   if (avg < 6) return 'acidic'
   if (avg > 7.5) return 'alkaline'
   return 'neutral'
+}
+
+// Perenual's `soil` field is an array of free-text tags, e.g.
+// ["Loamy", "Sandy", "Well-drained", "Acidic"]. We scan for keywords and
+// map to our closest single option. Order matters: more specific terms
+// (peat, orchid bark) are checked before generic ones.
+export function mapPerenualSoil(raw) {
+  const arr = Array.isArray(raw) ? raw : (raw ? [raw] : [])
+  const joined = arr.join(' ').toLowerCase()
+  if (!joined) return null
+  if (joined.includes('orchid') || joined.includes('bark')) return 'orchid_bark'
+  if (joined.includes('peat')) return 'peat_moss_based'
+  if (joined.includes('clay')) return 'clay'
+  if (joined.includes('sand')) return 'sandy'
+  if (joined.includes('loam')) return 'loamy'
+  if (joined.includes('well-drain') || joined.includes('well drain')) return 'well_draining'
+  return null
+}
+
+// Perenual's `pruning_count` looks like { amount: 1, interval: "yearly" }.
+// We map the interval text to our closest frequency bucket.
+export function mapPerenualPruning(pruningCount) {
+  const interval = pruningCount?.interval
+  if (!interval) return null
+  const key = interval.toLowerCase().trim()
+  if (key.includes('month')) return 'monthly'
+  if (key.includes('season')) return 'seasonal'
+  if (key.includes('year') || key.includes('annual')) return 'yearly'
+  if (key.includes('need')) return 'as_needed'
+  return null
 }
