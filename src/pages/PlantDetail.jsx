@@ -25,8 +25,6 @@ const CARE_ACTIONS = [
   { key: 'cut', label: 'Cut', icon: IconScissors },
 ]
 
-// Perenual's care guide can return several topic types; we only show
-// the ones we have friendly labels for, in this order.
 const CARE_GUIDE_META = [
   { key: 'watering', emoji: '💧', label: 'Watering' },
   { key: 'sunlight', emoji: '☀️', label: 'Sunlight' },
@@ -41,9 +39,6 @@ function defaultFrequencyDays(wateringText) {
   return WATERING_TO_DAYS[wateringText.toLowerCase().trim()] ?? 3
 }
 
-// Friendly-label lookups: try an exact match against the current dropdown
-// keys first (covers plants added/edited with the new selects), then fall
-// back to keyword matching against older free-text Perenual imports.
 const WATERING_LABELS = {
   frequent: 'Frequent',
   average: 'Average',
@@ -121,7 +116,6 @@ function toxicityBadge(plant) {
 }
 
 function humanToxicityBadge(plant) {
-  // Only show a badge when the plant IS toxic to humans — stays hidden when safe/unknown.
   if (!plant.poisonous_to_humans) return null
   return { emoji: '☣️', label: 'Toxic to humans' }
 }
@@ -159,21 +153,29 @@ export default function PlantDetail() {
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [customOpen, setCustomOpen] = useState(false)
 
-  // passport accordion
   const [profileOpen, setProfileOpen] = useState(false)
   const profileRef = useRef(null)
 
-  // Other logging modal
   const [otherModalOpen, setOtherModalOpen] = useState(false)
   const [otherSelectedChip, setOtherSelectedChip] = useState(null)
   const [otherCustomText, setOtherCustomText] = useState('')
   const [otherSaving, setOtherSaving] = useState(false)
   const [otherError, setOtherError] = useState(null)
 
-  // smart suggestion banner
   const [suggestionBanner, setSuggestionBanner] = useState({ visible: false, text: '' })
 
-  useEffect(() => { fetchPlant(); fetchLogs(); fetchMainPhoto() }, [id])
+  // plant notes
+  const [notes, setNotes] = useState([])
+  const [notesLoading, setNotesLoading] = useState(true)
+  const [addingNote, setAddingNote] = useState(false)
+  const [newNoteText, setNewNoteText] = useState('')
+  const [savingNote, setSavingNote] = useState(false)
+  const [noteError, setNoteError] = useState(null)
+  const [editingNoteId, setEditingNoteId] = useState(null)
+  const [editNoteText, setEditNoteText] = useState('')
+  const [savingEditNote, setSavingEditNote] = useState(false)
+
+  useEffect(() => { fetchPlant(); fetchLogs(); fetchMainPhoto(); fetchNotes() }, [id])
 
   async function fetchPlant() {
     setLoading(true); setError(null)
@@ -390,6 +392,71 @@ export default function PlantDetail() {
     setTimeout(() => profileRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
   }
 
+  async function fetchNotes() {
+    setNotesLoading(true)
+    const { data, error } = await supabase.from('plant_notes').select('*').eq('plant_id', id).order('created_at', { ascending: false })
+    if (!error) setNotes(data)
+    setNotesLoading(false)
+  }
+
+  async function handleAddNote() {
+    const content = newNoteText.trim()
+    if (!content) return
+    setSavingNote(true); setNoteError(null)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      const { data, error } = await supabase
+        .from('plant_notes')
+        .insert({ plant_id: id, user_id: user.id, content })
+        .select()
+        .single()
+      if (error) throw error
+      setNotes((prev) => [data, ...prev])
+      setNewNoteText('')
+      setAddingNote(false)
+    } catch (err) {
+      setNoteError('Could not save that note. Please try again.')
+    } finally {
+      setSavingNote(false)
+    }
+  }
+
+  function startEditNote(note) {
+    setEditingNoteId(note.id)
+    setEditNoteText(note.content)
+  }
+
+  async function handleSaveEditNote(noteId) {
+    const content = editNoteText.trim()
+    if (!content) return
+    setSavingEditNote(true)
+    try {
+      const { data, error } = await supabase
+        .from('plant_notes')
+        .update({ content, updated_at: new Date().toISOString() })
+        .eq('id', noteId)
+        .select()
+        .single()
+      if (error) throw error
+      setNotes((prev) => prev.map((n) => (n.id === noteId ? data : n)))
+      setEditingNoteId(null)
+    } catch (err) {
+      // keep the editor open so they can retry
+    } finally {
+      setSavingEditNote(false)
+    }
+  }
+
+  async function handleDeleteNote(noteId) {
+    try {
+      const { error } = await supabase.from('plant_notes').delete().eq('id', noteId)
+      if (error) throw error
+      setNotes((prev) => prev.filter((n) => n.id !== noteId))
+    } catch (err) {
+      // silently ignore; note stays in the list if delete failed
+    }
+  }
+
   if (loading) return <div className="plantdetail-page"><div className="plantdetail-header"><button className="plantdetail-back" onClick={() => navigate('/')}><IconArrowLeft size={22} /></button></div><p className="plantdetail-loading">Loading...</p></div>
   if (error) return <div className="plantdetail-page"><div className="plantdetail-header"><button className="plantdetail-back" onClick={() => navigate('/')}><IconArrowLeft size={22} /></button></div><p className="plantdetail-error">{error}</p></div>
   if (!plant) return null
@@ -563,7 +630,6 @@ export default function PlantDetail() {
         </div>
       )}
 
-      {/* 4-Card Passport */}
       <div className="plantdetail-passport">
         <button className="plantdetail-passport-card" onClick={scrollToProfile}>
           <div className="plantdetail-passport-emoji">💧</div>
@@ -587,7 +653,6 @@ export default function PlantDetail() {
         </button>
       </div>
 
-      {/* Expandable Full Plant Profile */}
       <div className="plantdetail-accordion" ref={profileRef}>
         <button className="plantdetail-accordion-header" onClick={() => setProfileOpen((v) => !v)}>
           <span>📖 Full Plant Profile</span>
@@ -632,6 +697,106 @@ export default function PlantDetail() {
             <div className="plantdetail-accordion-item">
               <strong>Toxicity to humans:</strong> {humanToxBadge ? `${humanToxBadge.emoji} ${humanToxBadge.label}` : 'Not toxic to humans'}
             </div>
+
+            <div className="plantdetail-notes-section">
+              <p className="plantdetail-notes-title">📝 Notes</p>
+
+              {addingNote ? (
+                <div className="plantdetail-note-editor">
+                  <textarea
+                    value={newNoteText}
+                    onChange={(e) => setNewNoteText(e.target.value)}
+                    placeholder="Write a note about this plant..."
+                    autoFocus
+                  />
+                  {noteError && <p className="plantdetail-error">{noteError}</p>}
+                  <div className="plantdetail-note-editor-actions">
+                    <button
+                      className="plantdetail-note-save-btn"
+                      onClick={handleAddNote}
+                      disabled={savingNote || !newNoteText.trim()}
+                    >
+                      <IconCheck size={16} /> Save
+                    </button>
+                    <button
+                      className="plantdetail-note-cancel-btn"
+                      onClick={() => { setAddingNote(false); setNewNoteText(''); setNoteError(null) }}
+                      disabled={savingNote}
+                    >
+                      <IconX size={16} /> Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button className="plantdetail-note-add-btn" onClick={() => setAddingNote(true)}>
+                  <IconPlus size={16} /> Add note
+                </button>
+              )}
+
+              {notesLoading ? (
+                <p className="plantdetail-notes-empty">Loading notes...</p>
+              ) : notes.length === 0 && !addingNote ? (
+                <p className="plantdetail-notes-empty">No notes yet.</p>
+              ) : (
+                <div className="plantdetail-notes-list">
+                  {notes.map((note) => {
+                    const wasEdited = note.updated_at && note.updated_at !== note.created_at
+                    const displayDate = note.updated_at || note.created_at
+                    return (
+                      <div key={note.id} className="plantdetail-note-card">
+                        {editingNoteId === note.id ? (
+                          <div className="plantdetail-note-editor">
+                            <textarea
+                              value={editNoteText}
+                              onChange={(e) => setEditNoteText(e.target.value)}
+                              autoFocus
+                            />
+                            <div className="plantdetail-note-editor-actions">
+                              <button
+                                className="plantdetail-note-save-btn"
+                                onClick={() => handleSaveEditNote(note.id)}
+                                disabled={savingEditNote || !editNoteText.trim()}
+                              >
+                                <IconCheck size={16} /> Save
+                              </button>
+                              <button
+                                className="plantdetail-note-cancel-btn"
+                                onClick={() => setEditingNoteId(null)}
+                                disabled={savingEditNote}
+                              >
+                                <IconX size={16} /> Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="plantdetail-note-text">{note.content}</p>
+                            <div className="plantdetail-note-footer">
+                              <span className="plantdetail-note-date">
+                                {formatRelativeDay(displayDate)} · {formatTime(displayDate)}
+                                {wasEdited ? ' (edited)' : ''}
+                              </span>
+                              <div className="plantdetail-note-actions">
+                                <button className="plantdetail-note-icon-btn" onClick={() => startEditNote(note)}>
+                                  <IconPencil size={14} />
+                                </button>
+                                <button
+                                  className="plantdetail-note-icon-btn plantdetail-note-icon-btn-danger"
+                                  onClick={() => handleDeleteNote(note.id)}
+                                >
+                                  <IconTrash size={14} />
+                                </button>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
             {plant.care_guide && Object.keys(plant.care_guide).length > 0 && (
               <div className="plantdetail-careguide">
                 <p className="plantdetail-careguide-title">🌿 More about this plant</p>
@@ -671,7 +836,6 @@ export default function PlantDetail() {
       </div>
       {logError && <p className="plantdetail-error">{logError}</p>}
 
-      {/* Other logging modal */}
       {otherModalOpen && (
         <div className="plantdetail-modal-overlay" onClick={() => setOtherModalOpen(false)}>
           <div className="plantdetail-modal" onClick={(e) => e.stopPropagation()}>
@@ -710,7 +874,6 @@ export default function PlantDetail() {
         </div>
       )}
 
-      {/* Smart suggestion banner */}
       {suggestionBanner.visible && (
         <div className="plantdetail-suggestion-banner">
           <p>{suggestionBanner.text}</p>
