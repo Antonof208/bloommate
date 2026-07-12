@@ -1058,3 +1058,36 @@
 .plantdetail-note-icon-btn-danger:hover {
   background: #FDEAEA;
 }
+
+.plantdetail-reminder-hint {
+  font-size: 0.75rem;
+  color: #999;
+  margin: -4px 0 8px;
+}
+
+.plantdetail-doctor-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  background: white;
+  color: var(--green-dark);
+  border: 2px solid #E5F5EA;
+  border-radius: 16px;
+  padding: 13px;
+  font-weight: 800;
+  font-size: 0.95rem;
+  cursor: pointer;
+  font-family: inherit;
+  margin-bottom: 16px;
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+
+.plantdetail-doctor-btn:hover {
+  border-color: var(--green);
+}
+
+.plantdetail-doctor-btn:active {
+  transform: scale(0.98);
+}

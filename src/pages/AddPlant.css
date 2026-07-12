@@ -269,3 +269,83 @@
   accent-color: var(--green);
   flex-shrink: 0;
 }
+
+.addplant-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.addplant-tab {
+  flex: 1;
+  padding: 10px 6px;
+  border-radius: 14px;
+  border: 2px solid #E5F5EA;
+  background: white;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--green-dark);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.addplant-tab.is-active {
+  border-color: var(--green);
+  background: #E5F5EA;
+}
+
+.addplant-scan {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.addplant-scan-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  border: 2px dashed #CFE9D6;
+  border-radius: 18px;
+  padding: 40px 20px;
+  color: var(--green-dark);
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: center;
+}
+
+.addplant-scan-upload-sub {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #888;
+}
+
+.addplant-scan-preview-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.addplant-scan-preview {
+  width: 100%;
+  max-width: 280px;
+  border-radius: 18px;
+  object-fit: cover;
+}
+
+.addplant-scan-remove {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: #888;
+  font-weight: 700;
+  font-size: 0.85rem;
+  font-family: inherit;
+  cursor: pointer;
+}

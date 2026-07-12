@@ -1,0 +1,236 @@
+.doctor-page {
+  padding: 20px;
+  padding-bottom: 100px;
+  font-family: 'Nunito', sans-serif;
+}
+
+.doctor-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.doctor-back {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--green-dark);
+  display: flex;
+}
+
+.doctor-header h1 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--green-dark);
+}
+
+.doctor-loading {
+  text-align: center;
+  color: #888;
+  margin-top: 40px;
+}
+
+.doctor-intro {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #E5F5EA;
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  color: var(--green-dark);
+}
+
+.doctor-intro p {
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #1A1A1A;
+}
+
+.doctor-photo-section {
+  margin-bottom: 16px;
+}
+
+.doctor-photo-upload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: white;
+  border: 2px dashed #CFE9D6;
+  border-radius: 18px;
+  padding: 28px 20px;
+  color: var(--green-dark);
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.doctor-photo-preview-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.doctor-photo-preview {
+  width: 100%;
+  max-width: 240px;
+  border-radius: 16px;
+  object-fit: cover;
+}
+
+.doctor-photo-remove {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: #888;
+  font-weight: 700;
+  font-size: 0.85rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.doctor-description-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--green-dark);
+  margin-bottom: 16px;
+}
+
+.doctor-description-input {
+  border: 2px solid #E5F5EA;
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  min-height: 90px;
+  resize: vertical;
+}
+
+.doctor-error {
+  color: var(--orange);
+  font-weight: 700;
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+}
+
+.doctor-loading-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: center;
+  margin: 20px 0;
+}
+
+.doctor-mascot-small {
+  width: 48px;
+  height: 48px;
+}
+
+.doctor-ask-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  background: var(--green);
+  color: white;
+  border: none;
+  border-radius: 16px;
+  padding: 14px;
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: 0 4px 0 var(--green-dark);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.doctor-ask-btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 var(--green-dark);
+}
+
+.doctor-ask-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+  transform: none;
+}
+
+.doctor-result {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.doctor-severity-badge {
+  align-self: flex-start;
+  padding: 8px 14px;
+  border-radius: 14px;
+  font-weight: 800;
+  font-size: 0.9rem;
+  background: #F0FDF4;
+  color: #1A1A1A;
+}
+
+.doctor-severity-badge.severity-healthy { background: #E5F5EA; }
+.doctor-severity-badge.severity-mild { background: #FFF7E0; }
+.doctor-severity-badge.severity-moderate { background: #FFF0E0; }
+.doctor-severity-badge.severity-urgent { background: #FDEAEA; }
+
+.doctor-diagnosis-text {
+  font-size: 0.95rem;
+  color: #1A1A1A;
+  line-height: 1.5;
+  background: white;
+  border: 2px solid #E5F5EA;
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+
+.doctor-result-section {
+  background: white;
+  border: 2px solid #E5F5EA;
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+
+.doctor-result-heading {
+  font-weight: 800;
+  color: var(--green-dark);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 8px;
+}
+
+.doctor-result-list {
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.doctor-result-list li {
+  font-size: 0.9rem;
+  color: #333;
+  line-height: 1.4;
+}
+
+.doctor-saved-msg {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--green-dark);
+  font-weight: 700;
+  font-size: 0.85rem;
+}

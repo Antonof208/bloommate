@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { IconSearch, IconArrowLeft, IconPlus, IconCheck } from '@tabler/icons-react'
+import { IconSearch, IconArrowLeft, IconPlus, IconCheck, IconCamera, IconX } from '@tabler/icons-react'
 import { supabase } from '../lib/supabase'
 import { searchPlants, getPlantDetails, getCareGuide } from '../lib/perenual'
+import { uploadPlantPhoto } from '../lib/photos'
 import {
   WATERING_OPTIONS, SUNLIGHT_OPTIONS, SOIL_TYPE_OPTIONS, HUMIDITY_OPTIONS,
   PH_LEVEL_OPTIONS, FERTILIZER_FREQUENCY_OPTIONS, PRUNING_FREQUENCY_OPTIONS,
@@ -25,19 +26,56 @@ const EMPTY_FORM = {
   poisonous_to_pets: false, poisonous_to_humans: false,
 }
 
+// Resizes an image file down before sending it to the AI, to keep uploads
+// fast and stay comfortably within free-tier request size limits.
+function resizeImageToBase64(file, maxDim = 1024, quality = 0.8) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = () => reject(new Error('Could not read file'))
+    reader.onload = (e) => {
+      const img = new Image()
+      img.onerror = () => reject(new Error('Could not read image'))
+      img.onload = () => {
+        let { width, height } = img
+        if (width > height && width > maxDim) {
+          height = Math.round(height * (maxDim / width)); width = maxDim
+        } else if (height > maxDim) {
+          width = Math.round(width * (maxDim / height)); height = maxDim
+        }
+        const canvas = document.createElement('canvas')
+        canvas.width = width; canvas.height = height
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0, width, height)
+        resolve(canvas.toDataURL('image/jpeg', quality))
+      }
+      img.src = e.target.result
+    }
+    reader.readAsDataURL(file)
+  })
+}
+
 export default function AddPlant() {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [searching, setSearching] = useState(false)
   const [searchError, setSearchError] = useState(null)
-  const [mode, setMode] = useState('search')
+  const [mode, setMode] = useState('search') // 'search' | 'scan' | 'form'
   const [form, setForm] = useState(EMPTY_FORM)
   const [loadingDetails, setLoadingDetails] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [toastAchievement, setToastAchievement] = useState(null)
   const debounceRef = useRef(null)
+
+  // Scan tab state
+  const [scanFile, setScanFile] = useState(null)       // original file, uploaded as the real photo on save
+  const [scanPreview, setScanPreview] = useState(null)  // resized data URL, shown in preview + sent to AI
+  const [scanBase64, setScanBase64] = useState(null)
+  const [scanIdentifying, setScanIdentifying] = useState(false)
+  const [scanError, setScanError] = useState(null)
+  const [scanOrigin, setScanOrigin] = useState(false)   // true if the current form came from a scan
+  const scanFileInputRef = useRef(null)
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
@@ -50,6 +88,19 @@ export default function AddPlant() {
     }, 500)
     return () => clearTimeout(debounceRef.current)
   }, [query])
+
+  function resetScanState() {
+    setScanFile(null)
+    setScanPreview(null)
+    setScanBase64(null)
+    setScanError(null)
+    setScanOrigin(false)
+  }
+
+  function goToTab(tab) {
+    if (tab !== 'scan') resetScanState()
+    setMode(tab)
+  }
 
   async function handleSelectResult(result) {
     setLoadingDetails(true)
@@ -77,14 +128,75 @@ export default function AddPlant() {
         poisonous_to_pets: Boolean(details.poisonous_to_pets),
         poisonous_to_humans: Boolean(details.poisonous_to_humans),
       })
+      setScanOrigin(false)
       setMode('form')
     } catch (err) { setSearchError("Couldn't load details. Try another or add manually.") }
     finally { setLoadingDetails(false) }
   }
 
   function startManualEntry() {
+    resetScanState()
     setForm(EMPTY_FORM)
     setMode('form')
+  }
+
+  async function handleScanFileSelected(e) {
+    const file = e.target.files[0]
+    e.target.value = ''
+    if (!file) return
+    setScanError(null)
+    try {
+      const dataUrl = await resizeImageToBase64(file)
+      setScanFile(file)
+      setScanPreview(dataUrl)
+      setScanBase64(dataUrl.split(',')[1])
+    } catch (err) {
+      setScanError('Could not read that photo. Please try another.')
+    }
+  }
+
+  async function handleIdentify() {
+    if (!scanBase64) return
+    setScanIdentifying(true)
+    setScanError(null)
+    try {
+      const { data, error } = await supabase.functions.invoke('identify-plant', {
+        body: { image_base64: scanBase64, mime_type: 'image/jpeg' },
+      })
+      if (error) throw error
+      if (!data || !data.identified) {
+        setScanError("Couldn't clearly identify a plant in that photo. Try a clearer, closer photo, or add it manually.")
+        return
+      }
+      setForm({
+        ...EMPTY_FORM,
+        nickname: data.common_name || '',
+        common_name: data.common_name || '',
+        scientific_name: data.scientific_name || '',
+        perenual_id: null,
+        care_guide: data.care_guide || null,
+        watering: data.watering || '',
+        sunlight: data.sunlight || '',
+        soil_type: data.soil_type || '',
+        humidity: data.humidity || '',
+        ph_level: data.ph_level || '',
+        temp_min: data.temp_min ?? '',
+        temp_max: data.temp_max ?? '',
+        fertilizer_frequency: data.fertilizer_frequency || '',
+        pruning_frequency: data.pruning_frequency || '',
+        cycle: data.cycle || '',
+        care_level: data.care_level || '',
+        poisonous_to_pets: Boolean(data.poisonous_to_pets),
+        poisonous_to_humans: Boolean(data.poisonous_to_humans),
+      })
+      setScanOrigin(true)
+      setMode('form')
+    } catch (err) {
+      console.error('Identify error:', err)
+      setScanError('Could not identify that plant. Please try again.')
+    } finally {
+      setScanIdentifying(false)
+    }
   }
 
   function updateField(field, value) { setForm((prev) => ({ ...prev, [field]: value })) }
@@ -95,7 +207,7 @@ export default function AddPlant() {
     setSaving(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      const { error } = await supabase.from('plants').insert({
+      const { data: insertedPlant, error } = await supabase.from('plants').insert({
         user_id: user.id,
         nickname: form.nickname.trim(),
         common_name: form.common_name || null,
@@ -116,8 +228,16 @@ export default function AddPlant() {
         care_level: form.care_level || null,
         poisonous_to_pets: form.poisonous_to_pets,
         poisonous_to_humans: form.poisonous_to_humans,
-      })
+      }).select().single()
       if (error) throw error
+
+      // If this plant came from a photo scan, save that photo as its real
+      // main photo via the existing photo system (private bucket + resize).
+      if (scanOrigin && scanFile) {
+        try { await uploadPlantPhoto(user.id, insertedPlant.id, scanFile) }
+        catch (photoErr) { console.error('Could not save scan photo:', photoErr) }
+      }
+
       const unlockedKeys = await checkAndUnlockAchievements(user.id)
       const delay = unlockedKeys.length > 0 ? 3000 : 1500
       if (unlockedKeys.length > 0) {
@@ -142,9 +262,65 @@ export default function AddPlant() {
   return (
     <div className="addplant-page">
       <div className="addplant-header">
-        <button className="addplant-back" onClick={() => mode === 'form' ? setMode('search') : navigate('/')}><IconArrowLeft size={22} /></button>
-        <h1>{mode === 'search' ? 'Add a plant' : 'Plant details'}</h1>
+        <button className="addplant-back" onClick={() => mode === 'form' ? goToTab('search') : navigate('/')}><IconArrowLeft size={22} /></button>
+        <h1>{mode === 'form' ? 'Plant details' : 'Add a plant'}</h1>
       </div>
+
+      {mode !== 'form' && (
+        <div className="addplant-tabs">
+          <button className={`addplant-tab ${mode === 'scan' ? 'is-active' : ''}`} onClick={() => goToTab('scan')}>
+            📷 Scan
+          </button>
+          <button className={`addplant-tab ${mode === 'search' ? 'is-active' : ''}`} onClick={() => goToTab('search')}>
+            🔍 Search
+          </button>
+          <button className="addplant-tab" onClick={startManualEntry}>
+            ✏️ Manual
+          </button>
+        </div>
+      )}
+
+      {mode === 'scan' && (
+        <div className="addplant-scan">
+          {!scanPreview ? (
+            <button className="addplant-scan-upload" onClick={() => scanFileInputRef.current?.click()}>
+              <IconCamera size={32} />
+              <span>Take or choose a photo</span>
+              <span className="addplant-scan-upload-sub">The AI will identify the plant and fill in care info for you</span>
+            </button>
+          ) : (
+            <div className="addplant-scan-preview-wrap">
+              <img src={scanPreview} alt="Scanned plant" className="addplant-scan-preview" />
+              <button className="addplant-scan-remove" onClick={() => { resetScanState() }}>
+                <IconX size={16} /> Choose another
+              </button>
+            </div>
+          )}
+          <input
+            ref={scanFileInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            style={{ display: 'none' }}
+            onChange={handleScanFileSelected}
+          />
+
+          {scanIdentifying && (
+            <div className="addplant-loading">
+              <img src={thinkingMascot} alt="BloomMate thinking" className="addplant-mascot-small" />
+              <p>Identifying your plant...</p>
+            </div>
+          )}
+          {scanError && <p className="addplant-error">{scanError}</p>}
+
+          {scanPreview && !scanIdentifying && (
+            <button className="addplant-save-btn" onClick={handleIdentify}>
+              <IconCheck size={18} /> Identify this plant
+            </button>
+          )}
+        </div>
+      )}
+
       {mode === 'search' && (
         <>
           <div className="addplant-search-bar">
@@ -164,13 +340,15 @@ export default function AddPlant() {
             </div>
           )}
           {!searching && query.trim().length >= 2 && results.length === 0 && !searchError && <p className="addplant-empty">No matches found.</p>}
-          <button className="addplant-manual-btn" onClick={startManualEntry}><IconPlus size={18} />Can't find it? Add manually</button>
         </>
       )}
+
       {mode === 'form' && (
         <form className="addplant-form" onSubmit={handleSave}>
           {loadingDetails && <p>Loading plant info...</p>}
-          {form.image_url && <img src={form.image_url} alt={form.common_name} className="addplant-form-image" />}
+          {(scanPreview || form.image_url) && (
+            <img src={scanPreview || form.image_url} alt={form.common_name} className="addplant-form-image" />
+          )}
 
           <p className="addplant-form-section-title">Basic info</p>
           <label>Nickname *<input type="text" value={form.nickname} onChange={(e) => updateField('nickname', e.target.value)} placeholder="What do you call this plant?" required /></label>

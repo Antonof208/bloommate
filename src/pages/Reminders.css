@@ -216,3 +216,31 @@
   border-color: var(--green);
   background: var(--green-light);
 }
+
+.reminders-type-block {
+  padding-top: 4px;
+}
+
+.reminders-type-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.reminders-type-label {
+  font-weight: 800;
+  font-size: 0.88rem;
+  color: var(--text);
+}
+
+.reminders-type-divider {
+  border: none;
+  border-top: 1.5px solid var(--border);
+  margin: 14px 0;
+}
+
+.reminders-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: -4px 0 8px;
+}

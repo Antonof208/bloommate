@@ -4,7 +4,7 @@ import {
   IconArrowLeft, IconDroplet, IconSun, IconRefresh, IconGauge,
   IconPencil, IconTrash, IconCheck, IconX, IconLeaf, IconScissors,
   IconChevronRight, IconChevronDown, IconChevronUp, IconBell, IconBellOff,
-  IconCamera, IconPlus, IconSeeding, IconWind
+  IconCamera, IconPlus, IconSeeding, IconWind, IconStethoscope
 } from '@tabler/icons-react'
 import { supabase } from '../lib/supabase'
 import { formatRelativeDay, formatTime, isToday, getLocalDateString } from '../lib/dateUtils'
@@ -35,8 +35,8 @@ const OTHER_CHIPS = ['Repotting', 'Misting', 'Pest Control', 'Cleaning leaves', 
 
 const WATERING_TO_DAYS = { 'frequent': 1, 'average': 3, 'minimum': 7, 'none': null }
 function defaultFrequencyDays(wateringText) {
-  if (!wateringText) return 3
-  return WATERING_TO_DAYS[wateringText.toLowerCase().trim()] ?? 3
+  if (!wateringText) return null
+  return WATERING_TO_DAYS[wateringText.toLowerCase().trim()] ?? null
 }
 
 const WATERING_LABELS = {
@@ -145,13 +145,18 @@ export default function PlantDetail() {
   const [logsLoading, setLogsLoading] = useState(true)
   const [loggingAction, setLoggingAction] = useState(null)
   const [logError, setLogError] = useState(null)
-  const [reminderSaving, setReminderSaving] = useState(false)
+
+  // per-care-type reminders (water / custom)
+  const [reminders, setReminders] = useState({ water: null, custom: null })
+  const [remindersLoading, setRemindersLoading] = useState(true)
+  const [reminderSaving, setReminderSaving] = useState({ water: false, custom: false })
+  const [customOpen, setCustomOpen] = useState({ water: false, custom: false })
+
   const [mainPhotoUrl, setMainPhotoUrl] = useState(null)
   const [photoUploading, setPhotoUploading] = useState(false)
   const [photoMessage, setPhotoMessage] = useState(null)
   const fileInputRef = useRef(null)
   const [lightboxOpen, setLightboxOpen] = useState(false)
-  const [customOpen, setCustomOpen] = useState(false)
 
   const [profileOpen, setProfileOpen] = useState(false)
   const profileRef = useRef(null)
@@ -175,7 +180,7 @@ export default function PlantDetail() {
   const [editNoteText, setEditNoteText] = useState('')
   const [savingEditNote, setSavingEditNote] = useState(false)
 
-  useEffect(() => { fetchPlant(); fetchLogs(); fetchMainPhoto(); fetchNotes() }, [id])
+  useEffect(() => { fetchPlant(); fetchLogs(); fetchMainPhoto(); fetchNotes(); fetchReminders() }, [id])
 
   async function fetchPlant() {
     setLoading(true); setError(null)
@@ -190,6 +195,17 @@ export default function PlantDetail() {
     const { data, error } = await supabase.from('care_logs').select('*').eq('plant_id', id).order('logged_at', { ascending: false }).limit(30)
     if (!error) setLogs(data)
     setLogsLoading(false)
+  }
+
+  async function fetchReminders() {
+    setRemindersLoading(true)
+    const { data, error } = await supabase.from('plant_reminders').select('*').eq('plant_id', id)
+    if (!error && data) {
+      const water = data.find((r) => r.care_type === 'water') || null
+      const custom = data.find((r) => r.care_type === 'custom') || null
+      setReminders({ water, custom })
+    }
+    setRemindersLoading(false)
   }
 
   async function fetchMainPhoto() {
@@ -280,14 +296,42 @@ export default function PlantDetail() {
     }
   }
 
-  async function handleAcceptSuggestion() {
-    const updates = {
-      reminder_enabled: true,
-      reminder_frequency_days: 14,
-      reminder_time_hour: plant.reminder_time_hour ?? 8,
+  // ---- Reminder helpers (per-care-type: water / custom) ----
+
+  async function upsertReminder(careType, updates) {
+    const existing = reminders[careType]
+    try {
+      if (existing) {
+        const { data, error } = await supabase
+          .from('plant_reminders')
+          .update(updates)
+          .eq('id', existing.id)
+          .select()
+          .single()
+        if (error) throw error
+        setReminders((prev) => ({ ...prev, [careType]: data }))
+      } else {
+        const { data: { user } } = await supabase.auth.getUser()
+        const { data, error } = await supabase
+          .from('plant_reminders')
+          .insert({ plant_id: id, user_id: user.id, care_type: careType, ...updates })
+          .select()
+          .single()
+        if (error) throw error
+        setReminders((prev) => ({ ...prev, [careType]: data }))
+      }
+    } catch (err) {
+      console.error('Could not save reminder:', err)
     }
-    const { data, error } = await supabase.from('plants').update(updates).eq('id', id).select().single()
-    if (!error) setPlant(data)
+  }
+
+  async function handleAcceptSuggestion() {
+    const existing = reminders.custom
+    await upsertReminder('custom', {
+      enabled: true,
+      frequency_days: 14,
+      time_hour: existing?.time_hour ?? 8,
+    })
     setSuggestionBanner({ visible: false, text: '' })
   }
 
@@ -295,28 +339,29 @@ export default function PlantDetail() {
     setSuggestionBanner({ visible: false, text: '' })
   }
 
-  async function handleToggleReminder() {
-    if (!plant) return
-    setReminderSaving(true)
-    const turningOn = !plant.reminder_enabled
-    const updates = {
-      reminder_enabled: turningOn,
-      reminder_frequency_days: plant.reminder_frequency_days ?? defaultFrequencyDays(plant.watering),
-      reminder_time_hour: plant.reminder_time_hour ?? 8,
+  async function handleToggleReminder(careType) {
+    setReminderSaving((prev) => ({ ...prev, [careType]: true }))
+    const existing = reminders[careType]
+    const turningOn = !existing?.enabled
+    let frequency = existing?.frequency_days ?? null
+    // Smart suggestion only for Water, only when plant has Perenual watering data, only if not already set
+    if (turningOn && frequency == null && careType === 'water' && plant.watering) {
+      frequency = defaultFrequencyDays(plant.watering)
     }
-    const { data, error } = await supabase.from('plants').update(updates).eq('id', id).select().single()
-    if (!error) setPlant(data)
-    setReminderSaving(false)
+    await upsertReminder(careType, {
+      enabled: turningOn,
+      time_hour: existing?.time_hour ?? 8,
+      frequency_days: frequency,
+    })
+    setReminderSaving((prev) => ({ ...prev, [careType]: false }))
   }
 
-  async function handleReminderTime(hour) {
-    const { data, error } = await supabase.from('plants').update({ reminder_time_hour: hour }).eq('id', id).select().single()
-    if (!error) setPlant(data)
+  async function handleReminderTime(careType, hour) {
+    await upsertReminder(careType, { time_hour: hour })
   }
 
-  async function handleReminderFrequency(days) {
-    const { data, error } = await supabase.from('plants').update({ reminder_frequency_days: days }).eq('id', id).select().single()
-    if (!error) setPlant(data)
+  async function handleReminderFrequency(careType, days) {
+    await upsertReminder(careType, { frequency_days: days })
   }
 
   function startEdit() {
@@ -457,6 +502,95 @@ export default function PlantDetail() {
     }
   }
 
+  // ---- Renders one reminder card (Water or Custom) ----
+  function renderReminderCard(careType, title) {
+    const rem = reminders[careType] || {}
+    const enabled = Boolean(rem.enabled)
+    const hour = rem.time_hour ?? 8
+    const days = rem.frequency_days ?? null
+    const isCustomHour = hour !== 8 && hour !== 18
+    const showCustomPicker = customOpen[careType] || isCustomHour
+    const saving = reminderSaving[careType]
+    const noSuggestionAvailable = careType === 'water' && !plant.watering
+
+    return (
+      <div className="plantdetail-reminder-card">
+        <div className="plantdetail-reminder-row">
+          <div className="plantdetail-reminder-label">
+            {enabled ? <IconBell size={18} /> : <IconBellOff size={18} />}
+            <span>{title} · {enabled ? 'on' : 'off'}</span>
+          </div>
+          <button
+            className={`plantdetail-reminder-toggle ${enabled ? 'is-on' : ''}`}
+            onClick={() => handleToggleReminder(careType)}
+            disabled={saving}
+          >
+            <span className="plantdetail-reminder-toggle-knob" />
+          </button>
+        </div>
+        {enabled && (
+          <>
+            <div className="plantdetail-reminder-divider" />
+            <p className="plantdetail-reminder-sublabel">Remind me · {formatHour(hour)}</p>
+            <div className="plantdetail-reminder-time-btns">
+              <button
+                className={`plantdetail-reminder-time-btn ${hour === 8 ? 'is-selected' : ''}`}
+                onClick={() => { handleReminderTime(careType, 8); setCustomOpen((prev) => ({ ...prev, [careType]: false })) }}
+              >
+                🌅 Morning
+                <span className="plantdetail-reminder-time-sub">8:00 AM</span>
+              </button>
+              <button
+                className={`plantdetail-reminder-time-btn ${hour === 18 ? 'is-selected' : ''}`}
+                onClick={() => { handleReminderTime(careType, 18); setCustomOpen((prev) => ({ ...prev, [careType]: false })) }}
+              >
+                🌆 Evening
+                <span className="plantdetail-reminder-time-sub">6:00 PM</span>
+              </button>
+              <button
+                className={`plantdetail-reminder-time-btn ${showCustomPicker ? 'is-selected' : ''}`}
+                onClick={() => setCustomOpen((prev) => ({ ...prev, [careType]: true }))}
+              >
+                ⏰ Custom
+                <span className="plantdetail-reminder-time-sub">{isCustomHour ? formatHour(hour) : 'Pick time'}</span>
+              </button>
+            </div>
+
+            {showCustomPicker && (
+              <select
+                className="plantdetail-hour-select"
+                value={hour}
+                onChange={(e) => handleReminderTime(careType, Number(e.target.value))}
+              >
+                {HOUR_OPTIONS.map((h) => (
+                  <option key={h} value={h}>{formatHour(h)}</option>
+                ))}
+              </select>
+            )}
+
+            <p className="plantdetail-reminder-sublabel" style={{ marginTop: 12 }}>
+              {days == null ? 'Choose how often' : 'Every'}
+            </p>
+            {days == null && noSuggestionAvailable && (
+              <p className="plantdetail-reminder-hint">No plant data to suggest a frequency — pick one below.</p>
+            )}
+            <div className="plantdetail-reminder-freq-btns">
+              {[1, 2, 3, 5, 7, 14].map((d) => (
+                <button
+                  key={d}
+                  className={`plantdetail-reminder-freq-btn ${days === d ? 'is-selected' : ''}`}
+                  onClick={() => handleReminderFrequency(careType, d)}
+                >
+                  {d === 1 ? 'day' : `${d}d`}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    )
+  }
+
   if (loading) return <div className="plantdetail-page"><div className="plantdetail-header"><button className="plantdetail-back" onClick={() => navigate('/')}><IconArrowLeft size={22} /></button></div><p className="plantdetail-loading">Loading...</p></div>
   if (error) return <div className="plantdetail-page"><div className="plantdetail-header"><button className="plantdetail-back" onClick={() => navigate('/')}><IconArrowLeft size={22} /></button></div><p className="plantdetail-error">{error}</p></div>
   if (!plant) return null
@@ -572,10 +706,6 @@ export default function PlantDetail() {
 
   const lastByAction = {}
   for (const log of logs) { if (!lastByAction[log.action]) lastByAction[log.action] = log }
-  const reminderHour = plant.reminder_time_hour ?? 8
-  const reminderDays = plant.reminder_frequency_days ?? defaultFrequencyDays(plant.watering)
-  const isCustomHour = reminderHour !== 8 && reminderHour !== 18
-  const showCustomPicker = customOpen || isCustomHour
   const displayImage = mainPhotoUrl || plant.image_url
 
   const diffBadge = difficultyBadge(plant.care_level)
@@ -836,6 +966,11 @@ export default function PlantDetail() {
       </div>
       {logError && <p className="plantdetail-error">{logError}</p>}
 
+      <button className="plantdetail-doctor-btn" onClick={() => navigate(`/plant/${id}/doctor`)}>
+        <IconStethoscope size={20} />
+        Ask the Plant Doctor
+      </button>
+
       {otherModalOpen && (
         <div className="plantdetail-modal-overlay" onClick={() => setOtherModalOpen(false)}>
           <div className="plantdetail-modal" onClick={(e) => e.stopPropagation()}>
@@ -884,59 +1019,10 @@ export default function PlantDetail() {
         </div>
       )}
 
-      <h3 className="plantdetail-section-title">Watering reminder</h3>
-      <div className="plantdetail-reminder-card">
-        <div className="plantdetail-reminder-row">
-          <div className="plantdetail-reminder-label">
-            {plant.reminder_enabled ? <IconBell size={18} /> : <IconBellOff size={18} />}
-            <span>{plant.reminder_enabled ? 'Reminder on' : 'Reminder off'}</span>
-          </div>
-          <button className={`plantdetail-reminder-toggle ${plant.reminder_enabled ? 'is-on' : ''}`} onClick={handleToggleReminder} disabled={reminderSaving}>
-            <span className="plantdetail-reminder-toggle-knob" />
-          </button>
-        </div>
-        {plant.reminder_enabled && (
-          <>
-            <div className="plantdetail-reminder-divider" />
-            <p className="plantdetail-reminder-sublabel">Remind me · {formatHour(reminderHour)}</p>
-            <div className="plantdetail-reminder-time-btns">
-              <button className={`plantdetail-reminder-time-btn ${reminderHour === 8 ? 'is-selected' : ''}`} onClick={() => { handleReminderTime(8); setCustomOpen(false) }}>
-                🌅 Morning
-                <span className="plantdetail-reminder-time-sub">8:00 AM</span>
-              </button>
-              <button className={`plantdetail-reminder-time-btn ${reminderHour === 18 ? 'is-selected' : ''}`} onClick={() => { handleReminderTime(18); setCustomOpen(false) }}>
-                🌆 Evening
-                <span className="plantdetail-reminder-time-sub">6:00 PM</span>
-              </button>
-              <button className={`plantdetail-reminder-time-btn ${showCustomPicker ? 'is-selected' : ''}`} onClick={() => setCustomOpen(true)}>
-                ⏰ Custom
-                <span className="plantdetail-reminder-time-sub">{isCustomHour ? formatHour(reminderHour) : 'Pick time'}</span>
-              </button>
-            </div>
-
-            {showCustomPicker && (
-              <select
-                className="plantdetail-hour-select"
-                value={reminderHour}
-                onChange={(e) => handleReminderTime(Number(e.target.value))}
-              >
-                {HOUR_OPTIONS.map((h) => (
-                  <option key={h} value={h}>{formatHour(h)}</option>
-                ))}
-              </select>
-            )}
-
-            <p className="plantdetail-reminder-sublabel" style={{ marginTop: 12 }}>Every</p>
-            <div className="plantdetail-reminder-freq-btns">
-              {[1, 2, 3, 5, 7, 14].map((d) => (
-                <button key={d} className={`plantdetail-reminder-freq-btn ${reminderDays === d ? 'is-selected' : ''}`} onClick={() => handleReminderFrequency(d)}>
-                  {d === 1 ? 'day' : `${d}d`}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
+      <h3 className="plantdetail-section-title">Reminders</h3>
+      {renderReminderCard('water', '💧 Water reminder')}
+      <div style={{ height: 12 }} />
+      {renderReminderCard('custom', '⏰ Custom reminder')}
 
       <div className="plantdetail-activity">
         <div className="plantdetail-activity-header">

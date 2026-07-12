@@ -9,6 +9,7 @@ import CareHistory from './pages/CareHistory'
 import Wins from './pages/Wins'
 import Profile from './pages/Profile'
 import Reminders from './pages/Reminders'
+import PlantDoctor from './pages/PlantDoctor'
 
 function App() {
   const [session, setSession] = useState(null)
@@ -35,6 +36,7 @@ function App() {
         <Route path="/add" element={session ? <AddPlant /> : <Navigate to="/auth" />} />
         <Route path="/plant/:id" element={session ? <PlantDetail /> : <Navigate to="/auth" />} />
         <Route path="/plant/:id/history" element={session ? <CareHistory /> : <Navigate to="/auth" />} />
+        <Route path="/plant/:id/doctor" element={session ? <PlantDoctor /> : <Navigate to="/auth" />} />
         <Route path="/wins" element={session ? <Wins session={session} /> : <Navigate to="/auth" />} />
         <Route path="/profile" element={session ? <Profile session={session} /> : <Navigate to="/auth" />} />
         <Route path="/reminders" element={session ? <Reminders session={session} /> : <Navigate to="/auth" />} />
