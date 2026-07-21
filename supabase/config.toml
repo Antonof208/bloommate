@@ -1,0 +1,7 @@
+project_id = "bthqwvxmaruuvqnulzli"
+
+[functions.identify-plant]
+verify_jwt = false
+
+[functions.plant-doctor]
+verify_jwt = false
