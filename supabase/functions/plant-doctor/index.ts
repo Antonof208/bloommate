@@ -1,14 +1,15 @@
 // Supabase Edge Function: plant-doctor
 // Takes plant info, recent care history, and a photo and/or text description
-// of a problem, and returns a diagnosis via Google Gemini (free tier).
+// of a problem, and returns a diagnosis via Mistral AI's Pixtral vision model
+// (free tier, EU-hosted, no EU/EEA/UK/Switzerland restriction).
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
-const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')!
-// Check ai.google.dev/gemini-api/docs/models for the current recommended
-// free-tier "flash" model name if this one is ever deprecated.
-const GEMINI_MODEL = 'gemini-2.0-flash'
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`
+const MISTRAL_API_KEY = Deno.env.get('MISTRAL_API_KEY')!
+// If this ever fails with a "model not found" type error, check
+// console.mistral.ai for the current vision-capable model name/alias.
+const MISTRAL_MODEL = 'pixtral-12b-2409'
+const MISTRAL_URL = 'https://api.mistral.ai/v1/chat/completions'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -57,7 +58,7 @@ Return STRICT JSON only, no markdown fences, matching this schema:
   "severity": "healthy" | "mild" | "moderate" | "urgent"
 }
 
-Keep "diagnosis" to 2-4 sentences in plain language. "likely_causes" and "recommended_actions" should each have at most 4 short, concrete bullet points. If the plant looks healthy and there's no described problem, say so plainly with severity "healthy" and empty or reassuring arrays.`
+Keep "diagnosis" to 2-4 sentences in plain language. "likely_causes" and "recommended_actions" should each have at most 4 short, concrete bullet points. If the plant looks healthy and there's no described problem, say so plainly with severity "healthy" and empty or reassuring arrays. Respond with JSON only.`
 }
 
 Deno.serve(async (req) => {
@@ -101,31 +102,35 @@ Deno.serve(async (req) => {
 
     const prompt = buildPrompt(plant || {}, recent_logs || [], description || null)
 
-    const parts = [{ text: prompt }]
+    const content = [{ type: 'text', text: prompt }]
     if (photo_base64 && mime_type) {
-      parts.push({ inline_data: { mime_type, data: photo_base64 } })
+      content.push({ type: 'image_url', image_url: `data:${mime_type};base64,${photo_base64}` })
     }
 
-    const geminiRes = await fetch(GEMINI_URL, {
+    const mistralRes = await fetch(MISTRAL_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Authorization': `Bearer ${MISTRAL_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
-        contents: [{ parts }],
-        generationConfig: { responseMimeType: 'application/json' },
+        model: MISTRAL_MODEL,
+        messages: [{ role: 'user', content }],
+        response_format: { type: 'json_object' },
       }),
     })
 
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text()
-      console.error('Gemini API error:', errText)
+    if (!mistralRes.ok) {
+      const errText = await mistralRes.text()
+      console.error('Mistral API error:', errText)
       return new Response(JSON.stringify({ error: 'AI service error. Please try again.' }), {
         status: 502,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    const geminiData = await geminiRes.json()
-    const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text
+    const mistralData = await mistralRes.json()
+    const rawText = mistralData?.choices?.[0]?.message?.content
 
     if (!rawText) {
       return new Response(JSON.stringify({ error: 'AI did not return a result. Please try again.' }), {
@@ -138,7 +143,7 @@ Deno.serve(async (req) => {
     try {
       parsed = JSON.parse(rawText)
     } catch (e) {
-      console.error('Could not parse Gemini JSON:', rawText)
+      console.error('Could not parse Mistral JSON:', rawText)
       return new Response(JSON.stringify({ error: 'AI returned an unreadable result. Please try again.' }), {
         status: 502,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

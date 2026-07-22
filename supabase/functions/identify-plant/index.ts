@@ -1,15 +1,16 @@
 // Supabase Edge Function: identify-plant
-// Takes a base64 photo, calls Google Gemini (free tier, vision-capable),
-// and returns plant identification + care data matching our exact
-// dropdown option values (see src/lib/plantFields.js).
+// Takes a base64 photo, calls Mistral AI's Pixtral vision model (free tier,
+// EU-hosted, no EU/EEA/UK/Switzerland restriction), and returns plant
+// identification + care data matching our exact dropdown option values
+// (see src/lib/plantFields.js).
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
-const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')!
-// Check ai.google.dev/gemini-api/docs/models for the current recommended
-// free-tier "flash" model name if this one is ever deprecated.
-const GEMINI_MODEL = 'gemini-2.0-flash'
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`
+const MISTRAL_API_KEY = Deno.env.get('MISTRAL_API_KEY')!
+// If this ever fails with a "model not found" type error, check
+// console.mistral.ai for the current vision-capable model name/alias.
+const MISTRAL_MODEL = 'pixtral-12b-2409'
+const MISTRAL_URL = 'https://api.mistral.ai/v1/chat/completions'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -63,7 +64,7 @@ Schema:
   }
 }
 
-Temperatures must be in Celsius. Only use values from the given lists, exactly as written including underscores and hyphens. If you are unsure about any field, use null rather than guessing — do not invent data. If the image doesn't clearly show a plant, set "identified" to false, leave other fields null, and still include a "care_guide" object with empty strings.`
+Temperatures must be in Celsius. Only use values from the given lists, exactly as written including underscores and hyphens. If you are unsure about any field, use null rather than guessing — do not invent data. If the image doesn't clearly show a plant, set "identified" to false, leave other fields null, and still include a "care_guide" object with empty strings. Respond with JSON only.`
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -104,35 +105,38 @@ Deno.serve(async (req) => {
       })
     }
 
-    const geminiRes = await fetch(GEMINI_URL, {
+    const mistralRes = await fetch(MISTRAL_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Authorization': `Bearer ${MISTRAL_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
-        contents: [
+        model: MISTRAL_MODEL,
+        messages: [
           {
-            parts: [
-              { text: PROMPT },
-              { inline_data: { mime_type, data: image_base64 } },
+            role: 'user',
+            content: [
+              { type: 'text', text: PROMPT },
+              { type: 'image_url', image_url: `data:${mime_type};base64,${image_base64}` },
             ],
           },
         ],
-        generationConfig: {
-          responseMimeType: 'application/json',
-        },
+        response_format: { type: 'json_object' },
       }),
     })
 
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text()
-      console.error('Gemini API error:', errText)
+    if (!mistralRes.ok) {
+      const errText = await mistralRes.text()
+      console.error('Mistral API error:', errText)
       return new Response(JSON.stringify({ error: 'AI service error. Please try again.' }), {
         status: 502,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    const geminiData = await geminiRes.json()
-    const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text
+    const mistralData = await mistralRes.json()
+    const rawText = mistralData?.choices?.[0]?.message?.content
 
     if (!rawText) {
       return new Response(JSON.stringify({ error: 'AI did not return a result. Please try again.' }), {
@@ -145,7 +149,7 @@ Deno.serve(async (req) => {
     try {
       parsed = JSON.parse(rawText)
     } catch (e) {
-      console.error('Could not parse Gemini JSON:', rawText)
+      console.error('Could not parse Mistral JSON:', rawText)
       return new Response(JSON.stringify({ error: 'AI returned an unreadable result. Please try again.' }), {
         status: 502,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
