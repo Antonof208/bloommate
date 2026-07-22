@@ -300,7 +300,6 @@ export default function AddPlant() {
             ref={scanFileInputRef}
             type="file"
             accept="image/*"
-            capture="environment"
             style={{ display: 'none' }}
             onChange={handleScanFileSelected}
           />
@@ -348,6 +347,11 @@ export default function AddPlant() {
           {loadingDetails && <p>Loading plant info...</p>}
           {(scanPreview || form.image_url) && (
             <img src={scanPreview || form.image_url} alt={form.common_name} className="addplant-form-image" />
+          )}
+          {scanOrigin && (
+            <p className="addplant-disclaimer">
+              🤖 AI identification isn't always perfect — please double-check the details below before saving.
+            </p>
           )}
 
           <p className="addplant-form-section-title">Basic info</p>

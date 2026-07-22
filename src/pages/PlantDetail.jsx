@@ -33,7 +33,7 @@ const CARE_GUIDE_META = [
 
 const OTHER_CHIPS = ['Repotting', 'Misting', 'Pest Control', 'Cleaning leaves', 'Propagation', 'Deadheading']
 
-const WATERING_TO_DAYS = { 'frequent': 1, 'average': 3, 'minimum': 7, 'none': null }
+const WATERING_TO_DAYS = { 'frequent': 1, 'average': 3, 'minimum': 7, 'none': null, 'soak_and_dry': 10, 'bottom_water': 4 }
 function defaultFrequencyDays(wateringText) {
   if (!wateringText) return null
   return WATERING_TO_DAYS[wateringText.toLowerCase().trim()] ?? null
@@ -169,6 +169,10 @@ export default function PlantDetail() {
 
   const [suggestionBanner, setSuggestionBanner] = useState({ visible: false, text: '' })
 
+  // Plant Doctor diagnoses linked to care_log entries (shown via Activity/History)
+  const [doctorNotes, setDoctorNotes] = useState({})
+  const [expandedLogId, setExpandedLogId] = useState(null)
+
   // plant notes
   const [notes, setNotes] = useState([])
   const [notesLoading, setNotesLoading] = useState(true)
@@ -180,7 +184,37 @@ export default function PlantDetail() {
   const [editNoteText, setEditNoteText] = useState('')
   const [savingEditNote, setSavingEditNote] = useState(false)
 
-  useEffect(() => { fetchPlant(); fetchLogs(); fetchMainPhoto(); fetchNotes(); fetchReminders() }, [id])
+  useEffect(() => { fetchPlant(); fetchLogs(); fetchMainPhoto(); fetchNotes(); fetchReminders(); fetchDoctorNotes() }, [id])
+
+  async function fetchDoctorNotes() {
+    const { data, error } = await supabase
+      .from('plant_notes')
+      .select('*')
+      .eq('plant_id', id)
+      .eq('source', 'plant_doctor')
+    if (!error && data) {
+      const map = {}
+      data.forEach((n) => { if (n.care_log_id) map[n.care_log_id] = n })
+      setDoctorNotes(map)
+    }
+  }
+
+  async function handleDeleteDoctorNote(logId) {
+    const note = doctorNotes[logId]
+    if (!note) return
+    try {
+      const { error } = await supabase.from('plant_notes').delete().eq('id', note.id)
+      if (error) throw error
+      setDoctorNotes((prev) => {
+        const next = { ...prev }
+        delete next[logId]
+        return next
+      })
+      setExpandedLogId(null)
+    } catch (err) {
+      console.error('Could not delete diagnosis:', err)
+    }
+  }
 
   async function fetchPlant() {
     setLoading(true); setError(null)
@@ -439,7 +473,14 @@ export default function PlantDetail() {
 
   async function fetchNotes() {
     setNotesLoading(true)
-    const { data, error } = await supabase.from('plant_notes').select('*').eq('plant_id', id).order('created_at', { ascending: false })
+    // Only regular user-written notes show here. Plant Doctor diagnoses are
+    // linked to their care_log entry instead and surface via Recent Activity.
+    const { data, error } = await supabase
+      .from('plant_notes')
+      .select('*')
+      .eq('plant_id', id)
+      .eq('source', 'user')
+      .order('created_at', { ascending: false })
     if (!error) setNotes(data)
     setNotesLoading(false)
   }
@@ -1035,13 +1076,29 @@ export default function PlantDetail() {
             <div className="plantdetail-activity-list">
               {logs.slice(0, 5).map((log) => {
                 const isCustom = log.action === 'custom'
+                const isDoctor = isCustom && log.custom_action === 'Plant Doctor'
+                const doctorNote = isDoctor ? doctorNotes[log.id] : null
                 const meta = !isCustom ? CARE_ACTIONS.find((a) => a.key === log.action) : null
                 const Icon = meta?.icon
+                const isExpanded = expandedLogId === log.id
                 return (
-                  <div key={log.id} className="plantdetail-activity-row">
-                    <span className="plantdetail-activity-icon">{isCustom ? '📌' : <Icon size={16} />}</span>
-                    <span className="plantdetail-activity-label">{isCustom ? (log.custom_action || 'Other') : meta.label}</span>
-                    <span className="plantdetail-activity-time">{formatRelativeDay(log.logged_at)} · {formatTime(log.logged_at)}</span>
+                  <div key={log.id}>
+                    <div
+                      className={`plantdetail-activity-row ${doctorNote ? 'is-clickable' : ''}`}
+                      onClick={doctorNote ? () => setExpandedLogId(isExpanded ? null : log.id) : undefined}
+                    >
+                      <span className="plantdetail-activity-icon">{isDoctor ? '🩺' : isCustom ? '📌' : <Icon size={16} />}</span>
+                      <span className="plantdetail-activity-label">{isCustom ? (log.custom_action || 'Other') : meta.label}</span>
+                      <span className="plantdetail-activity-time">{formatRelativeDay(log.logged_at)} · {formatTime(log.logged_at)}</span>
+                    </div>
+                    {isExpanded && doctorNote && (
+                      <div className="plantdetail-activity-detail">
+                        <p className="plantdetail-activity-detail-text">{doctorNote.content}</p>
+                        <button className="plantdetail-activity-detail-delete" onClick={() => handleDeleteDoctorNote(log.id)}>
+                          <IconTrash size={14} /> Delete diagnosis
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )
               })}

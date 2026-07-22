@@ -112,9 +112,27 @@ export default function PlantDoctor() {
   async function saveAsNoteAndLog(diagnosis) {
     try {
       const { data: { user } } = await supabase.auth.getUser()
+
+      // Log the care action first so we have its id to link the note to.
+      const { data: logData, error: logError } = await supabase
+        .from('care_logs')
+        .insert({ plant_id: id, user_id: user.id, action: 'custom', custom_action: 'Plant Doctor' })
+        .select()
+        .single()
+      if (logError) throw logError
+
+      // Save the full diagnosis as a note linked to that log entry, tagged
+      // as a plant_doctor note so it can be shown via Activity/History
+      // instead of the regular user Notes list.
       const noteContent = formatNoteContent(diagnosis)
-      await supabase.from('plant_notes').insert({ plant_id: id, user_id: user.id, content: noteContent })
-      await supabase.from('care_logs').insert({ plant_id: id, user_id: user.id, action: 'custom', custom_action: 'Plant Doctor' })
+      await supabase.from('plant_notes').insert({
+        plant_id: id,
+        user_id: user.id,
+        content: noteContent,
+        source: 'plant_doctor',
+        care_log_id: logData.id,
+      })
+
       const { error: streakError } = await supabase.rpc('bump_streak', { p_today: getLocalDateString() })
       if (streakError) console.error('Streak update failed:', streakError)
       setSaved(true)
@@ -210,7 +228,6 @@ export default function PlantDoctor() {
               ref={fileInputRef}
               type="file"
               accept="image/*"
-              capture="environment"
               style={{ display: 'none' }}
               onChange={handlePhotoSelected}
             />
@@ -253,6 +270,10 @@ export default function PlantDoctor() {
 
           <p className="doctor-diagnosis-text">{result.diagnosis}</p>
 
+          <p className="doctor-disclaimer">
+            🤖 AI guidance isn't always accurate — for serious or ongoing issues, consider checking with a local nursery or plant expert.
+          </p>
+
           {result.likely_causes?.length > 0 && (
             <div className="doctor-result-section">
               <p className="doctor-result-heading">Likely causes</p>
@@ -272,7 +293,7 @@ export default function PlantDoctor() {
           )}
 
           {saved && (
-            <p className="doctor-saved-msg"><IconCheck size={16} /> Saved to {plant.nickname}'s notes</p>
+            <p className="doctor-saved-msg"><IconCheck size={16} /> Saved to {plant.nickname}'s Recent Activity &amp; History</p>
           )}
 
           <button className="doctor-ask-btn" onClick={askAnother}>Ask another question</button>

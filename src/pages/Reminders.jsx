@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 import { subscribeToPush } from '../lib/push'
 import './Reminders.css'
 
-const WATERING_TO_DAYS = { frequent: 1, average: 3, minimum: 7, none: null }
+const WATERING_TO_DAYS = { frequent: 1, average: 3, minimum: 7, none: null, soak_and_dry: 10, bottom_water: 4 }
 function defaultFrequencyDays(wateringText) {
   if (!wateringText) return null
   return WATERING_TO_DAYS[wateringText.toLowerCase().trim()] ?? null

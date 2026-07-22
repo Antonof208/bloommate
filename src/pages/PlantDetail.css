@@ -1091,3 +1091,41 @@
 .plantdetail-doctor-btn:active {
   transform: scale(0.98);
 }
+
+.plantdetail-activity-row.is-clickable {
+  cursor: pointer;
+}
+
+.plantdetail-activity-row.is-clickable:hover {
+  border-color: var(--green);
+}
+
+.plantdetail-activity-detail {
+  background: #FAFCFB;
+  border: 1.5px solid #E5F5EA;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin: -4px 0 8px;
+}
+
+.plantdetail-activity-detail-text {
+  font-size: 0.85rem;
+  color: #333;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  margin-bottom: 10px;
+}
+
+.plantdetail-activity-detail-delete {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  color: #E5484D;
+  font-weight: 700;
+  font-size: 0.8rem;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+}
