@@ -358,3 +358,60 @@
   line-height: 1.4;
   margin-top: -6px;
 }
+
+.addplant-retry-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  background: none;
+  border: 2px solid #FFE0B2;
+  border-radius: 14px;
+  padding: 10px;
+  color: var(--orange);
+  font-weight: 700;
+  font-size: 0.85rem;
+  font-family: inherit;
+  cursor: pointer;
+  margin: -6px 0 4px;
+}
+
+.addplant-reminder-no-btn {
+  flex: 1;
+  border: 2px solid #E5F5EA;
+  background: white;
+  color: #888;
+  border-radius: 16px;
+  padding: 14px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.addplant-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.addplant-modal {
+  background: white;
+  width: 100%;
+  max-width: 400px;
+  border-radius: 20px;
+  padding: 22px;
+}
+
+.addplant-modal-header h3 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--green-dark);
+  margin-bottom: 10px;
+}

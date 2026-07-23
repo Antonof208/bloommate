@@ -9,7 +9,9 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 const MISTRAL_API_KEY = Deno.env.get('MISTRAL_API_KEY')!
 // If this ever fails with a "model not found" type error, check
 // console.mistral.ai for the current vision-capable model name/alias.
-const MISTRAL_MODEL = 'pixtral-12b-2409'
+// Using the larger Pixtral model for better identification accuracy
+// (still within Mistral's free "Experiment" tier).
+const MISTRAL_MODEL = 'pixtral-large-latest'
 const MISTRAL_URL = 'https://api.mistral.ai/v1/chat/completions'
 
 const corsHeaders = {
@@ -36,7 +38,7 @@ function sanitizeEnum(field, value) {
   return ALLOWED[field].includes(v) ? v : null
 }
 
-const PROMPT = `You are a plant identification and care expert. Look at the photo of a plant and identify it, then return care information as STRICT JSON matching this exact schema. Do not include any text outside the JSON, no markdown code fences.
+const PROMPT = `You are a plant identification and care expert. Look carefully at the photo — examine leaf shape, arrangement, edge texture, color patterns, stem structure, and any visible flowers or fruit before deciding. Then identify the plant and return care information as STRICT JSON matching this exact schema. Do not include any text outside the JSON, no markdown code fences.
 
 Schema:
 {
@@ -64,7 +66,12 @@ Schema:
   }
 }
 
-Temperatures must be in Celsius. Only use values from the given lists, exactly as written including underscores and hyphens. If you are unsure about any field, use null rather than guessing — do not invent data. If the image doesn't clearly show a plant, set "identified" to false, leave other fields null, and still include a "care_guide" object with empty strings. Respond with JSON only.`
+Temperatures must be in Celsius. Only use values from the given lists, exactly as written including underscores and hyphens. If you are unsure about any field, use null rather than guessing — do not invent data. Be honest about your confidence: only use "high" if you are genuinely certain, and prefer the most common plausible species over a rarer look-alike unless the photo clearly shows features specific to the rarer one. If the image doesn't clearly show a plant, set "identified" to false, leave other fields null, and still include a "care_guide" object with empty strings. Respond with JSON only.`
+
+function buildRetrySuffix(previousGuess) {
+  if (!previousGuess) return ''
+  return `\n\nIMPORTANT: A previous identification attempt guessed "${previousGuess}", but the user confirmed this is WRONG. Do not repeat that guess. Look again carefully and consider other plant species with similar leaf shape, color, or growth habit that could be confused with the ruled-out guess, and provide your best alternative identification.`
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -96,7 +103,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { image_base64, mime_type } = await req.json()
+    const { image_base64, mime_type, previous_guess } = await req.json()
 
     if (!image_base64 || !mime_type) {
       return new Response(JSON.stringify({ error: 'Missing image_base64 or mime_type' }), {
@@ -104,6 +111,8 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
+
+    const fullPrompt = PROMPT + buildRetrySuffix(previous_guess)
 
     const mistralRes = await fetch(MISTRAL_URL, {
       method: 'POST',
@@ -117,12 +126,15 @@ Deno.serve(async (req) => {
           {
             role: 'user',
             content: [
-              { type: 'text', text: PROMPT },
+              { type: 'text', text: fullPrompt },
               { type: 'image_url', image_url: `data:${mime_type};base64,${image_base64}` },
             ],
           },
         ],
         response_format: { type: 'json_object' },
+        // Bump randomness on retries so a second attempt isn't just a repeat
+        // of the same (rejected) guess.
+        temperature: previous_guess ? 0.9 : 0.3,
       }),
     })
 

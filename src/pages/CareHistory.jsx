@@ -27,16 +27,19 @@ export default function CareHistory() {
   const [confirmingDeleteId, setConfirmingDeleteId] = useState(null)
   const [busyPhotoId, setBusyPhotoId] = useState(null)
   const [lightboxSrc, setLightboxSrc] = useState(null)
+  const [doctorNotes, setDoctorNotes] = useState({})
+  const [expandedLogId, setExpandedLogId] = useState(null)
 
   useEffect(() => { fetchData() }, [id])
 
   async function fetchData() {
     setLoading(true); setError(null)
     try {
-      const [{ data: plant, error: plantError }, { data: logData, error: logsError }, photoData] = await Promise.all([
+      const [{ data: plant, error: plantError }, { data: logData, error: logsError }, photoData, { data: doctorNoteData }] = await Promise.all([
         supabase.from('plants').select('nickname').eq('id', id).single(),
         supabase.from('care_logs').select('*').eq('plant_id', id).order('logged_at', { ascending: false }),
         listPlantPhotos(id),
+        supabase.from('plant_notes').select('*').eq('plant_id', id).eq('source', 'plant_doctor'),
       ])
       if (plantError || logsError) throw plantError || logsError
       setPlantName(plant.nickname)
@@ -46,10 +49,30 @@ export default function CareHistory() {
         const urls = await getSignedUrls(photoData.map((p) => p.storage_path))
         setPhotoUrls(urls)
       }
+      const map = {}
+      ;(doctorNoteData || []).forEach((n) => { if (n.care_log_id) map[n.care_log_id] = n })
+      setDoctorNotes(map)
     } catch (err) {
       setError('Could not load history.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleDeleteDoctorNote(logId) {
+    const note = doctorNotes[logId]
+    if (!note) return
+    try {
+      const { error } = await supabase.from('plant_notes').delete().eq('id', note.id)
+      if (error) throw error
+      setDoctorNotes((prev) => {
+        const next = { ...prev }
+        delete next[logId]
+        return next
+      })
+      setExpandedLogId(null)
+    } catch (err) {
+      console.error('Could not delete diagnosis:', err)
     }
   }
 
@@ -108,14 +131,30 @@ export default function CareHistory() {
             {group.items.map((ev) => {
               if (ev.type === 'log') {
                 const log = ev.data
+                const isDoctor = log.action === 'custom' && log.custom_action === 'Plant Doctor'
+                const doctorNote = isDoctor ? doctorNotes[log.id] : null
                 const meta = ACTION_META[log.action] || ACTION_META.custom
                 const Icon = meta.icon
                 const label = log.action === 'custom' ? (log.custom_action || meta.label) : meta.label
+                const isExpanded = expandedLogId === log.id
                 return (
-                  <div key={log.id} className="careh-row">
-                    <div className="careh-row-icon"><Icon size={18} /></div>
-                    <span className="careh-row-label">{label}</span>
-                    <span className="careh-row-time">{formatTime(log.logged_at)}</span>
+                  <div key={log.id}>
+                    <div
+                      className={`careh-row ${doctorNote ? 'is-clickable' : ''}`}
+                      onClick={doctorNote ? () => setExpandedLogId(isExpanded ? null : log.id) : undefined}
+                    >
+                      <div className="careh-row-icon">{isDoctor ? '🩺' : <Icon size={18} />}</div>
+                      <span className="careh-row-label">{label}</span>
+                      <span className="careh-row-time">{formatTime(log.logged_at)}</span>
+                    </div>
+                    {isExpanded && doctorNote && (
+                      <div className="careh-doctor-detail">
+                        <p className="careh-doctor-detail-text">{doctorNote.content}</p>
+                        <button className="careh-doctor-detail-delete" onClick={() => handleDeleteDoctorNote(log.id)}>
+                          <IconTrash size={14} /> Delete diagnosis
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )
               }

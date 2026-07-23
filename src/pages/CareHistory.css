@@ -93,3 +93,41 @@
 .careh-photo-confirm-yes, .careh-photo-confirm-no { border: none; border-radius: 8px; padding: 5px 10px; font-size: 0.75rem; font-weight: 800; cursor: pointer; font-family: inherit; }
 .careh-photo-confirm-yes { background: #E5484D; color: white; }
 .careh-photo-confirm-no { background: #F0F0F0; color: #555; }
+
+.careh-row.is-clickable {
+  cursor: pointer;
+}
+
+.careh-row.is-clickable:hover {
+  opacity: 0.8;
+}
+
+.careh-doctor-detail {
+  background: #FAFCFB;
+  border: 1.5px solid #E5F5EA;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin: -4px 0 8px;
+}
+
+.careh-doctor-detail-text {
+  font-size: 0.85rem;
+  color: #333;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  margin-bottom: 10px;
+}
+
+.careh-doctor-detail-delete {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  color: #E5484D;
+  font-weight: 700;
+  font-size: 0.8rem;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+}

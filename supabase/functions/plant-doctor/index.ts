@@ -8,7 +8,9 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 const MISTRAL_API_KEY = Deno.env.get('MISTRAL_API_KEY')!
 // If this ever fails with a "model not found" type error, check
 // console.mistral.ai for the current vision-capable model name/alias.
-const MISTRAL_MODEL = 'pixtral-12b-2409'
+// Using the larger Pixtral model for better diagnosis quality (still within
+// Mistral's free "Experiment" tier).
+const MISTRAL_MODEL = 'pixtral-large-latest'
 const MISTRAL_URL = 'https://api.mistral.ai/v1/chat/completions'
 
 const corsHeaders = {

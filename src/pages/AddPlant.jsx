@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { IconSearch, IconArrowLeft, IconPlus, IconCheck, IconCamera, IconX } from '@tabler/icons-react'
+import { IconSearch, IconArrowLeft, IconPlus, IconCheck, IconCamera, IconX, IconRefresh } from '@tabler/icons-react'
 import { supabase } from '../lib/supabase'
 import { searchPlants, getPlantDetails, getCareGuide } from '../lib/perenual'
 import { uploadPlantPhoto } from '../lib/photos'
@@ -24,6 +24,12 @@ const EMPTY_FORM = {
   temp_min: '', temp_max: '', fertilizer_frequency: '', pruning_frequency: '',
   cycle: '', care_level: '',
   poisonous_to_pets: false, poisonous_to_humans: false,
+}
+
+const WATERING_TO_DAYS = { frequent: 1, average: 3, minimum: 7, none: null, soak_and_dry: 10, bottom_water: 4 }
+function defaultFrequencyDays(wateringText) {
+  if (!wateringText) return null
+  return WATERING_TO_DAYS[wateringText.toLowerCase().trim()] ?? null
 }
 
 // Resizes an image file down before sending it to the AI, to keep uploads
@@ -76,6 +82,12 @@ export default function AddPlant() {
   const [scanError, setScanError] = useState(null)
   const [scanOrigin, setScanOrigin] = useState(false)   // true if the current form came from a scan
   const scanFileInputRef = useRef(null)
+
+  // Reminder-suggestion popup shown right after saving
+  const [showReminderPrompt, setShowReminderPrompt] = useState(false)
+  const [pendingPlantId, setPendingPlantId] = useState(null)
+  const [suggestedReminderDays, setSuggestedReminderDays] = useState(null)
+  const [settingReminder, setSettingReminder] = useState(false)
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
@@ -155,13 +167,13 @@ export default function AddPlant() {
     }
   }
 
-  async function handleIdentify() {
+  async function handleIdentify(previousGuess = null) {
     if (!scanBase64) return
     setScanIdentifying(true)
     setScanError(null)
     try {
       const { data, error } = await supabase.functions.invoke('identify-plant', {
-        body: { image_base64: scanBase64, mime_type: 'image/jpeg' },
+        body: { image_base64: scanBase64, mime_type: 'image/jpeg', previous_guess: previousGuess },
       })
       if (error) throw error
       if (!data || !data.identified) {
@@ -197,6 +209,11 @@ export default function AddPlant() {
     } finally {
       setScanIdentifying(false)
     }
+  }
+
+  function handleRetryIdentify() {
+    const previousGuess = form.scientific_name || form.common_name || null
+    handleIdentify(previousGuess)
   }
 
   function updateField(field, value) { setForm((prev) => ({ ...prev, [field]: value })) }
@@ -238,17 +255,55 @@ export default function AddPlant() {
         catch (photoErr) { console.error('Could not save scan photo:', photoErr) }
       }
 
-      const unlockedKeys = await checkAndUnlockAchievements(user.id)
-      const delay = unlockedKeys.length > 0 ? 3000 : 1500
-      if (unlockedKeys.length > 0) {
-        setToastAchievement(ACHIEVEMENTS.find((a) => a.key === unlockedKeys[0]))
+      setSaving(false)
+
+      // If we have enough info to suggest a sensible watering frequency,
+      // ask before turning a reminder on rather than deciding for the user.
+      const suggestedDays = defaultFrequencyDays(form.watering)
+      if (suggestedDays != null) {
+        setPendingPlantId(insertedPlant.id)
+        setSuggestedReminderDays(suggestedDays)
+        setShowReminderPrompt(true)
+      } else {
+        await finishSaveFlow()
       }
-      setSaved(true)
-      setTimeout(() => navigate('/'), delay)
     } catch (err) {
       setSearchError('Could not save your plant. Please try again.')
       setSaving(false)
     }
+  }
+
+  async function finishSaveFlow() {
+    const { data: { user } } = await supabase.auth.getUser()
+    const unlockedKeys = await checkAndUnlockAchievements(user.id)
+    const delay = unlockedKeys.length > 0 ? 3000 : 1500
+    if (unlockedKeys.length > 0) {
+      setToastAchievement(ACHIEVEMENTS.find((a) => a.key === unlockedKeys[0]))
+    }
+    setSaved(true)
+    setTimeout(() => navigate('/'), delay)
+  }
+
+  async function handleReminderChoice(accept) {
+    setSettingReminder(true)
+    if (accept && pendingPlantId) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        await supabase.from('plant_reminders').insert({
+          plant_id: pendingPlantId,
+          user_id: user.id,
+          care_type: 'water',
+          enabled: true,
+          frequency_days: suggestedReminderDays,
+          time_hour: 8,
+        })
+      } catch (err) {
+        console.error('Could not create reminder:', err)
+      }
+    }
+    setShowReminderPrompt(false)
+    setSettingReminder(false)
+    await finishSaveFlow()
   }
 
   if (saved) return (
@@ -313,7 +368,7 @@ export default function AddPlant() {
           {scanError && <p className="addplant-error">{scanError}</p>}
 
           {scanPreview && !scanIdentifying && (
-            <button className="addplant-save-btn" onClick={handleIdentify}>
+            <button className="addplant-save-btn" onClick={() => handleIdentify()}>
               <IconCheck size={18} /> Identify this plant
             </button>
           )}
@@ -349,9 +404,22 @@ export default function AddPlant() {
             <img src={scanPreview || form.image_url} alt={form.common_name} className="addplant-form-image" />
           )}
           {scanOrigin && (
-            <p className="addplant-disclaimer">
-              🤖 AI identification isn't always perfect — please double-check the details below before saving.
-            </p>
+            <>
+              <p className="addplant-disclaimer">
+                🤖 AI identification isn't always perfect — please double-check the details below before saving.
+              </p>
+              {scanIdentifying ? (
+                <div className="addplant-loading">
+                  <img src={thinkingMascot} alt="BloomMate thinking" className="addplant-mascot-small" />
+                  <p>Trying again...</p>
+                </div>
+              ) : (
+                <button type="button" className="addplant-retry-btn" onClick={handleRetryIdentify}>
+                  <IconRefresh size={16} /> Not my plant? Try again
+                </button>
+              )}
+              {scanError && <p className="addplant-error">{scanError}</p>}
+            </>
           )}
 
           <p className="addplant-form-section-title">Basic info</p>
@@ -434,6 +502,28 @@ export default function AddPlant() {
           {searchError && <p className="addplant-error">{searchError}</p>}
           <button type="submit" className="addplant-save-btn" disabled={saving}><IconCheck size={18} />{saving ? 'Saving...' : 'Save plant'}</button>
         </form>
+      )}
+
+      {showReminderPrompt && (
+        <div className="addplant-modal-overlay">
+          <div className="addplant-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="addplant-modal-header">
+              <h3>💧 Set a watering reminder?</h3>
+            </div>
+            <p>
+              Based on {form.nickname}'s needs, we suggest watering every {suggestedReminderDays} day{suggestedReminderDays === 1 ? '' : 's'}.
+              Want to turn on a reminder now? You can always change it later.
+            </p>
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <button className="addplant-save-btn" style={{ margin: 0 }} onClick={() => handleReminderChoice(true)} disabled={settingReminder}>
+                <IconCheck size={18} /> {settingReminder ? 'Saving...' : 'Yes, remind me'}
+              </button>
+              <button className="addplant-reminder-no-btn" onClick={() => handleReminderChoice(false)} disabled={settingReminder}>
+                No thanks
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
