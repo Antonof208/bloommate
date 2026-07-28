@@ -10,7 +10,7 @@ const MISTRAL_API_KEY = Deno.env.get('MISTRAL_API_KEY')!
 // console.mistral.ai for the current vision-capable model name/alias.
 // Using the larger Pixtral model for better diagnosis quality (still within
 // Mistral's free "Experiment" tier).
-const MISTRAL_MODEL = 'pixtral-large-latest'
+const MISTRAL_MODEL = 'mistral-small-2506'
 const MISTRAL_URL = 'https://api.mistral.ai/v1/chat/completions'
 
 const corsHeaders = {
