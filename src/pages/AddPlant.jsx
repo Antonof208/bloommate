@@ -63,7 +63,7 @@ function resizeImageToBase64(file, maxDim = 1024, quality = 0.8) {
 
 export default function AddPlant() {
   const navigate = useNavigate()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [searching, setSearching] = useState(false)
@@ -175,7 +175,7 @@ export default function AddPlant() {
     setScanError(null)
     try {
       const { data, error } = await supabase.functions.invoke('identify-plant', {
-        body: { image_base64: scanBase64, mime_type: 'image/jpeg', previous_guess: previousGuess },
+        body: { image_base64: scanBase64, mime_type: 'image/jpeg', previous_guess: previousGuess, language: i18n.language },
       })
       if (error) throw error
       if (!data || !data.identified) {

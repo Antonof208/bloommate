@@ -48,13 +48,13 @@
     "emptySub": "Přidej svou první rostlinu a začni sérii",
     "addAPlant": "+ Přidat rostlinu",
     "watering": "Zalévání...",
-    "watered": "Zaléváno",
+    "watered": "Hotovo",
     "water": "Zalít"
   },
   "addPlant": {
     "headerAdd": "Přidat rostlinu",
     "headerDetails": "Detaily rostliny",
-    "tabScan": "📷 Sken",
+    "tabScan": "📷 AI Sken",
     "tabSearch": "🔍 Hledat",
     "tabManual": "✏️ Ručně",
     "scanUpload": "Vyfoť nebo vyber fotku",
@@ -197,7 +197,7 @@
     "cut": "Ostříhat"
   },
   "actionMeta": {
-    "water": "Zaléváno",
+    "water": "Hotovo",
     "fertilize": "Přihnojeno",
     "cut": "Ostříháno",
     "custom": "Jiné"

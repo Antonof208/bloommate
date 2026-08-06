@@ -46,7 +46,7 @@ function resizeImageToBase64(file, maxDim = 1024, quality = 0.8) {
 export default function PlantDoctor() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
 
   const severityLabel = (key) => t(`plantDoctor.severity.${key}`, t('plantDoctor.severity.fallback'))
 
@@ -165,6 +165,7 @@ export default function PlantDoctor() {
           photo_base64: photoBase64,
           mime_type: photoBase64 ? 'image/jpeg' : null,
           description: description.trim() || null,
+          language: i18n.language,
         },
       })
       if (error) throw error

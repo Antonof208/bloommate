@@ -54,7 +54,7 @@
   "addPlant": {
     "headerAdd": "Añadir una planta",
     "headerDetails": "Detalles de la planta",
-    "tabScan": "📷 Escanear",
+    "tabScan": "📷 IA Escanear",
     "tabSearch": "🔍 Buscar",
     "tabManual": "✏️ Manual",
     "scanUpload": "Toma o elige una foto",
