@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { IconBell, IconBellRinging, IconFlame, IconSnowflake, IconDroplet, IconInfoCircle, IconCheck } from '@tabler/icons-react'
 import { supabase } from '../lib/supabase'
 import { registerServiceWorker } from '../lib/push'
@@ -10,6 +11,7 @@ import './Home.css'
 
 export default function Home({ session }) {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [plants, setPlants] = useState([])
   const [photoUrls, setPhotoUrls] = useState({})
   const [loading, setLoading] = useState(true)
@@ -31,7 +33,7 @@ export default function Home({ session }) {
     const { data, error } = await supabase
       .from('plants').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false })
     if (error) {
-      setError('Could not load your plants.')
+      setError(t('home.loadError'))
     } else {
       setPlants(data)
       try {
@@ -95,8 +97,8 @@ export default function Home({ session }) {
     <div className="page">
       <header className="app-header">
         <div>
-          <p className="header-greeting">Hey {name} 👋</p>
-          <h2>My Plants 🌿</h2>
+          <p className="header-greeting">{t('home.greeting', { name })}</p>
+          <h2>{t('home.title')}</h2>
         </div>
         <div className="home-header-right">
           <button
@@ -120,18 +122,18 @@ export default function Home({ session }) {
 
       <main className="content">
         {loading ? (
-          <div className="home-loading"><p>Loading your plants...</p></div>
+          <div className="home-loading"><p>{t('home.loadingPlants')}</p></div>
         ) : error ? (
           <div className="home-error">
             <p>{error}</p>
-            <button className="btn-primary" onClick={fetchPlants} style={{ maxWidth: '160px' }}>Try again</button>
+            <button className="btn-primary" onClick={fetchPlants} style={{ maxWidth: '160px' }}>{t('common.tryAgain')}</button>
           </div>
         ) : plants.length === 0 ? (
           <div className="empty-state">
             <div className="empty-emoji">🪴</div>
-            <h3>No plants yet!</h3>
-            <p>Add your first plant and start your streak</p>
-            <button className="btn-primary" style={{ maxWidth: '220px' }} onClick={() => navigate('/add')}>+ Add a plant</button>
+            <h3>{t('home.emptyTitle')}</h3>
+            <p>{t('home.emptySub')}</p>
+            <button className="btn-primary" style={{ maxWidth: '220px' }} onClick={() => navigate('/add')}>{t('home.addAPlant')}</button>
           </div>
         ) : (
           <div className="plant-grid">
@@ -156,7 +158,7 @@ export default function Home({ session }) {
                       disabled={doneToday || isWatering}
                     >
                       {doneToday ? <IconCheck size={16} /> : <IconDroplet size={16} />}
-                      {isWatering ? 'Watering...' : doneToday ? 'Watered' : 'Water'}
+                      {isWatering ? t('home.watering') : doneToday ? t('home.watered') : t('home.water')}
                     </button>
                     <button
                       className="plant-card-info-btn"

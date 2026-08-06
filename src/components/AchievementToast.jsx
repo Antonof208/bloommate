@@ -1,7 +1,10 @@
 import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import './AchievementToast.css'
 
 export default function AchievementToast({ achievement, onDismiss }) {
+  const { t } = useTranslation()
+
   useEffect(() => {
     if (!achievement) return
     const timer = setTimeout(onDismiss, 4000)
@@ -16,9 +19,9 @@ export default function AchievementToast({ achievement, onDismiss }) {
         {achievement.emoji}
       </div>
       <div className="ach-toast-body">
-        <p className="ach-toast-headline">Achievement unlocked! 🎉</p>
-        <p className="ach-toast-name">{achievement.name}</p>
-        <p className="ach-toast-desc">{achievement.description}</p>
+        <p className="ach-toast-headline">{t('wins.achievementUnlocked')}</p>
+        <p className="ach-toast-name">{t(`achievements.${achievement.key}.name`)}</p>
+        <p className="ach-toast-desc">{t(`achievements.${achievement.key}.description`)}</p>
       </div>
     </div>
   )

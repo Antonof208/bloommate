@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { IconArrowLeft, IconDroplet, IconLeaf, IconScissors, IconStar, IconStarFilled, IconTrash, IconMapPin } from '@tabler/icons-react'
 import { supabase } from '../lib/supabase'
 import { formatRelativeDay, formatTime } from '../lib/dateUtils'
@@ -7,17 +8,17 @@ import { listPlantPhotos, setMainPhoto, deletePlantPhoto, getSignedUrls } from '
 import './CareHistory.css'
 import PhotoLightbox from '../components/PhotoLightbox'
 
-
-const ACTION_META = {
-  water: { label: 'Watered', icon: IconDroplet },
-  fertilize: { label: 'Fertilized', icon: IconLeaf },
-  cut: { label: 'Cut / pruned', icon: IconScissors },
-  custom: { label: 'Other', icon: IconMapPin },
+const ACTION_ICONS = {
+  water: IconDroplet,
+  fertilize: IconLeaf,
+  cut: IconScissors,
+  custom: IconMapPin,
 }
 
 export default function CareHistory() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [plantName, setPlantName] = useState('')
   const [logs, setLogs] = useState([])
   const [photos, setPhotos] = useState([])
@@ -53,7 +54,7 @@ export default function CareHistory() {
       ;(doctorNoteData || []).forEach((n) => { if (n.care_log_id) map[n.care_log_id] = n })
       setDoctorNotes(map)
     } catch (err) {
-      setError('Could not load history.')
+      setError(t('careHistory.loadError'))
     } finally {
       setLoading(false)
     }
@@ -120,11 +121,11 @@ export default function CareHistory() {
     <div className="careh-page">
       <div className="careh-header">
         <button className="careh-back" onClick={() => navigate(`/plant/${id}`)}><IconArrowLeft size={22} /></button>
-        <h1>{plantName ? `${plantName}'s history` : 'History'}</h1>
+        <h1>{plantName ? t('careHistory.titleWithName', { name: plantName }) : t('careHistory.titleFallback')}</h1>
       </div>
-      {loading ? <p className="careh-empty">Loading...</p>
+      {loading ? <p className="careh-empty">{t('common.loading')}</p>
         : error ? <p className="careh-empty">{error}</p>
-        : events.length === 0 ? <p className="careh-empty">No activity logged yet.</p>
+        : events.length === 0 ? <p className="careh-empty">{t('careHistory.noActivity')}</p>
         : groups.map((group) => (
           <div key={group.label} className="careh-group">
             <p className="careh-group-label">{group.label}</p>
@@ -133,9 +134,10 @@ export default function CareHistory() {
                 const log = ev.data
                 const isDoctor = log.action === 'custom' && log.custom_action === 'Plant Doctor'
                 const doctorNote = isDoctor ? doctorNotes[log.id] : null
-                const meta = ACTION_META[log.action] || ACTION_META.custom
-                const Icon = meta.icon
-                const label = log.action === 'custom' ? (log.custom_action || meta.label) : meta.label
+                const Icon = ACTION_ICONS[log.action] || ACTION_ICONS.custom
+                const label = log.action === 'custom'
+                  ? (log.custom_action || t('actionMeta.custom'))
+                  : t(`actionMeta.${log.action}`)
                 const isExpanded = expandedLogId === log.id
                 return (
                   <div key={log.id}>
@@ -151,7 +153,7 @@ export default function CareHistory() {
                       <div className="careh-doctor-detail">
                         <p className="careh-doctor-detail-text">{doctorNote.content}</p>
                         <button className="careh-doctor-detail-delete" onClick={() => handleDeleteDoctorNote(log.id)}>
-                          <IconTrash size={14} /> Delete diagnosis
+                          <IconTrash size={14} /> {t('careHistory.deleteDiagnosis')}
                         </button>
                       </div>
                     )}
@@ -166,31 +168,31 @@ export default function CareHistory() {
                 <div key={photo.id} className="careh-photo-card">
                   <img
                     src={photoUrls[photo.storage_path]}
-                    alt="Plant photo"
+                    alt="Plant"
                     className="careh-photo-img"
                     onClick={() => setLightboxSrc(photoUrls[photo.storage_path])}
                     style={{ cursor: 'zoom-in' }}
                   />
                   <div className="careh-photo-info">
                     <div className="careh-photo-toprow">
-                      {isMain && <span className="careh-photo-badge"><IconStarFilled size={12} />Main</span>}
+                      {isMain && <span className="careh-photo-badge"><IconStarFilled size={12} />{t('careHistory.main')}</span>}
                       <span className="careh-photo-time">{formatTime(photo.created_at)}</span>
                     </div>
                     {isConfirming ? (
                       <div className="careh-photo-confirm">
-                        <span>Delete this photo?</span>
-                        <button onClick={() => handleDeletePhoto(photo)} disabled={isBusy} className="careh-photo-confirm-yes">{isBusy ? '...' : 'Yes'}</button>
-                        <button onClick={() => setConfirmingDeleteId(null)} disabled={isBusy} className="careh-photo-confirm-no">No</button>
+                        <span>{t('careHistory.deletePhotoConfirm')}</span>
+                        <button onClick={() => handleDeletePhoto(photo)} disabled={isBusy} className="careh-photo-confirm-yes">{isBusy ? '...' : t('common.yes')}</button>
+                        <button onClick={() => setConfirmingDeleteId(null)} disabled={isBusy} className="careh-photo-confirm-no">{t('common.no')}</button>
                       </div>
                     ) : (
                       <div className="careh-photo-actions">
                         {!isMain && (
                           <button className="careh-photo-action-btn" onClick={() => handleSetMain(photo.id)} disabled={isBusy}>
-                            <IconStar size={14} />Set as main
+                            <IconStar size={14} />{t('careHistory.setAsMain')}
                           </button>
                         )}
                         <button className="careh-photo-action-btn careh-photo-action-danger" onClick={() => setConfirmingDeleteId(photo.id)} disabled={isBusy}>
-                          <IconTrash size={14} />Delete
+                          <IconTrash size={14} />{t('careHistory.delete')}
                         </button>
                       </div>
                     )}

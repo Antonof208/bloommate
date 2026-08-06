@@ -1,81 +1,87 @@
 // Shared dropdown options + Perenual mapping helpers for plant care fields.
 // Used by AddPlant.jsx and PlantDetail.jsx (edit form + display).
+//
+// NOTE ON i18n: `value` is the stable key stored in the database — never
+// translated. `labelKey` points at the translation string shown to the
+// user. Use t(labelKey) to display it, and labelFor()/optionLabel() below
+// with a `t` function for convenience.
 
 export const WATERING_OPTIONS = [
-  { value: 'frequent', label: 'Frequent' },
-  { value: 'average', label: 'Average' },
-  { value: 'minimum', label: 'Minimum' },
-  { value: 'none', label: 'None' },
-  { value: 'soak_and_dry', label: 'Soak & Dry' },
-  { value: 'bottom_water', label: 'Bottom Water' },
+  { value: 'frequent', labelKey: 'plantFields.watering.frequent' },
+  { value: 'average', labelKey: 'plantFields.watering.average' },
+  { value: 'minimum', labelKey: 'plantFields.watering.minimum' },
+  { value: 'none', labelKey: 'plantFields.watering.none' },
+  { value: 'soak_and_dry', labelKey: 'plantFields.watering.soak_and_dry' },
+  { value: 'bottom_water', labelKey: 'plantFields.watering.bottom_water' },
 ]
 
 export const SUNLIGHT_OPTIONS = [
-  { value: 'full_sun', label: 'Full Sun' },
-  { value: 'sun-part_shade', label: 'Sun / Part Shade' },
-  { value: 'part_shade', label: 'Part Shade' },
-  { value: 'full_shade', label: 'Full Shade' },
-  { value: 'bright_indirect', label: 'Bright Indirect' },
-  { value: 'low_light', label: 'Low Light' },
-  { value: 'morning_sun', label: 'Morning Sun' },
+  { value: 'full_sun', labelKey: 'plantFields.sunlight.full_sun' },
+  { value: 'sun-part_shade', labelKey: 'plantFields.sunlight.sun-part_shade' },
+  { value: 'part_shade', labelKey: 'plantFields.sunlight.part_shade' },
+  { value: 'full_shade', labelKey: 'plantFields.sunlight.full_shade' },
+  { value: 'bright_indirect', labelKey: 'plantFields.sunlight.bright_indirect' },
+  { value: 'low_light', labelKey: 'plantFields.sunlight.low_light' },
+  { value: 'morning_sun', labelKey: 'plantFields.sunlight.morning_sun' },
 ]
 
 export const SOIL_TYPE_OPTIONS = [
-  { value: 'well_draining', label: 'Well-Draining' },
-  { value: 'sandy', label: 'Sandy' },
-  { value: 'loamy', label: 'Loamy' },
-  { value: 'clay', label: 'Clay' },
-  { value: 'peat_moss_based', label: 'Peat Moss-Based' },
-  { value: 'orchid_bark', label: 'Orchid Bark' },
+  { value: 'well_draining', labelKey: 'plantFields.soilType.well_draining' },
+  { value: 'sandy', labelKey: 'plantFields.soilType.sandy' },
+  { value: 'loamy', labelKey: 'plantFields.soilType.loamy' },
+  { value: 'clay', labelKey: 'plantFields.soilType.clay' },
+  { value: 'peat_moss_based', labelKey: 'plantFields.soilType.peat_moss_based' },
+  { value: 'orchid_bark', labelKey: 'plantFields.soilType.orchid_bark' },
 ]
 
 export const HUMIDITY_OPTIONS = [
-  { value: 'high', label: 'High' },
-  { value: 'moderate', label: 'Moderate' },
-  { value: 'low', label: 'Low' },
+  { value: 'high', labelKey: 'plantFields.humidity.high' },
+  { value: 'moderate', labelKey: 'plantFields.humidity.moderate' },
+  { value: 'low', labelKey: 'plantFields.humidity.low' },
 ]
 
 export const PH_LEVEL_OPTIONS = [
-  { value: 'acidic', label: 'Acidic' },
-  { value: 'neutral', label: 'Neutral' },
-  { value: 'alkaline', label: 'Alkaline' },
+  { value: 'acidic', labelKey: 'plantFields.phLevel.acidic' },
+  { value: 'neutral', labelKey: 'plantFields.phLevel.neutral' },
+  { value: 'alkaline', labelKey: 'plantFields.phLevel.alkaline' },
 ]
 
 export const FERTILIZER_FREQUENCY_OPTIONS = [
-  { value: 'every_week', label: 'Every Week' },
-  { value: 'every_2_weeks', label: 'Every 2 Weeks' },
-  { value: 'every_month', label: 'Every Month' },
-  { value: 'growing_season_only', label: 'Growing Season Only' },
-  { value: 'rarely', label: 'Rarely' },
-  { value: 'never', label: 'Never' },
+  { value: 'every_week', labelKey: 'plantFields.fertilizerFrequency.every_week' },
+  { value: 'every_2_weeks', labelKey: 'plantFields.fertilizerFrequency.every_2_weeks' },
+  { value: 'every_month', labelKey: 'plantFields.fertilizerFrequency.every_month' },
+  { value: 'growing_season_only', labelKey: 'plantFields.fertilizerFrequency.growing_season_only' },
+  { value: 'rarely', labelKey: 'plantFields.fertilizerFrequency.rarely' },
+  { value: 'never', labelKey: 'plantFields.fertilizerFrequency.never' },
 ]
 
 export const PRUNING_FREQUENCY_OPTIONS = [
-  { value: 'monthly', label: 'Monthly' },
-  { value: 'seasonal', label: 'Seasonal' },
-  { value: 'yearly', label: 'Yearly' },
-  { value: 'as_needed', label: 'As Needed' },
-  { value: 'never', label: 'Never' },
+  { value: 'monthly', labelKey: 'plantFields.pruningFrequency.monthly' },
+  { value: 'seasonal', labelKey: 'plantFields.pruningFrequency.seasonal' },
+  { value: 'yearly', labelKey: 'plantFields.pruningFrequency.yearly' },
+  { value: 'as_needed', labelKey: 'plantFields.pruningFrequency.as_needed' },
+  { value: 'never', labelKey: 'plantFields.pruningFrequency.never' },
 ]
 
 export const CYCLE_OPTIONS = [
-  { value: 'perennial', label: 'Perennial' },
-  { value: 'annual', label: 'Annual' },
-  { value: 'biennial', label: 'Biennial' },
+  { value: 'perennial', labelKey: 'plantFields.cycle.perennial' },
+  { value: 'annual', labelKey: 'plantFields.cycle.annual' },
+  { value: 'biennial', labelKey: 'plantFields.cycle.biennial' },
 ]
 
 export const DIFFICULTY_OPTIONS = [
-  { value: 'easy', label: '🟢 Easy' },
-  { value: 'moderate', label: '🟡 Moderate' },
-  { value: 'advanced', label: '🔴 Advanced' },
+  { value: 'easy', labelKey: 'plantFields.difficulty.easy' },
+  { value: 'moderate', labelKey: 'plantFields.difficulty.moderate' },
+  { value: 'advanced', labelKey: 'plantFields.difficulty.advanced' },
 ]
 
-// Looks up the friendly label for a stored dropdown value.
-// Falls back to the raw value if there's no match (e.g. legacy free-text data).
-export function labelFor(options, value) {
+// Looks up the translated label for a stored dropdown value.
+// Falls back to the raw value if there's no match (e.g. legacy free-text data
+// that doesn't match one of our normalized keys — can't be translated).
+export function labelFor(options, value, t) {
   if (!value) return null
   const match = options.find((o) => o.value === value)
-  return match ? match.label : value
+  return match ? t(match.labelKey) : value
 }
 
 // ---- Perenual API -> our normalized dropdown keys ----

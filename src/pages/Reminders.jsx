@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { IconArrowLeft, IconBell, IconBellOff, IconDroplet } from '@tabler/icons-react'
 import { supabase } from '../lib/supabase'
 import { subscribeToPush } from '../lib/push'
@@ -11,16 +12,22 @@ function defaultFrequencyDays(wateringText) {
   return WATERING_TO_DAYS[wateringText.toLowerCase().trim()] ?? null
 }
 
-function formatHour(hour) {
-  const h = hour % 12 === 0 ? 12 : hour % 12
-  const suffix = hour < 12 ? 'AM' : 'PM'
-  return `${h}:00 ${suffix}`
+function formatHour(hour, locale) {
+  return new Date(2000, 0, 1, hour).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' })
 }
 
 const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => i)
 
+// Maps push.js's stable error codes to a localized message.
+function pushErrorMessage(err, t) {
+  if (err?.code === 'not_supported') return t('reminders.notificationsNotSupported')
+  if (err?.code === 'permission_denied') return t('reminders.notificationsPermissionDenied')
+  return t('reminders.notificationsGenericError')
+}
+
 export default function Reminders({ session }) {
   const navigate = useNavigate()
+  const { t, i18n } = useTranslation()
   const [plants, setPlants] = useState([])
   const [reminders, setReminders] = useState({}) // { [plantId]: { water: row, custom: row } }
   const [loading, setLoading] = useState(true)
@@ -68,7 +75,7 @@ export default function Reminders({ session }) {
       await subscribeToPush(session.user.id)
       setPushError(null)
     } catch (err) {
-      setPushError(err.message || 'Could not enable notifications on this device.')
+      setPushError(pushErrorMessage(err, t))
     }
   }
 
@@ -145,25 +152,25 @@ export default function Reminders({ session }) {
 
         {enabled && (
           <>
-            <p className="reminders-sublabel">Remind me</p>
+            <p className="reminders-sublabel">{t('reminders.remindMe')}</p>
             <div className="reminders-time-btns">
               <button
                 className={`reminders-time-btn ${hour === 8 ? 'is-selected' : ''}`}
                 onClick={() => { handleTime(plant, careType, 8); setCustomOpenKey(null) }}
               >
-                🌅 Morning
+                {t('reminders.morning')}
               </button>
               <button
                 className={`reminders-time-btn ${hour === 18 ? 'is-selected' : ''}`}
                 onClick={() => { handleTime(plant, careType, 18); setCustomOpenKey(null) }}
               >
-                🌆 Evening
+                {t('reminders.evening')}
               </button>
               <button
                 className={`reminders-time-btn ${showCustomPicker ? 'is-selected' : ''}`}
                 onClick={() => setCustomOpenKey(key)}
               >
-                ⏰ Custom
+                {t('reminders.custom_btn')}
               </button>
             </div>
 
@@ -174,16 +181,16 @@ export default function Reminders({ session }) {
                 onChange={(e) => handleTime(plant, careType, Number(e.target.value))}
               >
                 {HOUR_OPTIONS.map((h) => (
-                  <option key={h} value={h}>{formatHour(h)}</option>
+                  <option key={h} value={h}>{formatHour(h, i18n.language)}</option>
                 ))}
               </select>
             )}
 
             <p className="reminders-sublabel" style={{ marginTop: 12 }}>
-              {days == null ? 'Choose how often' : 'Every'}
+              {days == null ? t('reminders.chooseHowOften') : t('reminders.every')}
             </p>
             {days == null && noSuggestion && (
-              <p className="reminders-hint">No plant data to suggest a frequency — pick one below.</p>
+              <p className="reminders-hint">{t('reminders.noFrequencyHint')}</p>
             )}
             <div className="reminders-freq-btns">
               {[1, 2, 3, 5, 7, 14].map((d) => (
@@ -192,7 +199,7 @@ export default function Reminders({ session }) {
                   className={`reminders-freq-btn ${days === d ? 'is-selected' : ''}`}
                   onClick={() => handleFrequency(plant, careType, d)}
                 >
-                  {d === 1 ? 'day' : `${d}d`}
+                  {d === 1 ? t('reminders.day') : `${d}d`}
                 </button>
               ))}
             </div>
@@ -206,7 +213,7 @@ export default function Reminders({ session }) {
     <div className="page">
       <header className="app-header">
         <button className="reminders-back" onClick={() => navigate(-1)}><IconArrowLeft size={22} /></button>
-        <h2>Reminders</h2>
+        <h2>{t('reminders.title')}</h2>
       </header>
 
       <main className="content">
@@ -215,8 +222,8 @@ export default function Reminders({ session }) {
             <div className="reminders-pause-label">
               {paused ? <IconBellOff size={22} /> : <IconBell size={22} />}
               <div>
-                <p className="reminders-pause-title">Pause all reminders</p>
-                <p className="reminders-pause-sub">{paused ? 'No reminders will be sent' : 'Reminders are active'}</p>
+                <p className="reminders-pause-title">{t('reminders.pauseAll')}</p>
+                <p className="reminders-pause-sub">{paused ? t('reminders.pausedSub') : t('reminders.activeSub')}</p>
               </div>
             </div>
             <button className={`reminders-toggle ${!paused ? 'is-on' : ''}`} onClick={handleTogglePause} disabled={pauseSaving}>
@@ -228,12 +235,12 @@ export default function Reminders({ session }) {
         {pushError && <p className="reminders-error">{pushError}</p>}
 
         {loading ? (
-          <p className="reminders-empty">Loading...</p>
+          <p className="reminders-empty">{t('reminders.loading')}</p>
         ) : plants.length === 0 ? (
           <div className="empty-state">
             <div className="empty-emoji">🔔</div>
-            <h3>No plants yet</h3>
-            <p>Add a plant to set up watering reminders</p>
+            <h3>{t('reminders.emptyTitle')}</h3>
+            <p>{t('reminders.emptySub')}</p>
           </div>
         ) : (
           <div className="reminders-plant-list">
@@ -246,9 +253,9 @@ export default function Reminders({ session }) {
                   <span className="reminders-plant-name">{plant.nickname}</span>
                 </div>
 
-                {renderTypeBlock(plant, 'water', '💧 Water')}
+                {renderTypeBlock(plant, 'water', t('reminders.water'))}
                 <div className="reminders-type-divider" />
-                {renderTypeBlock(plant, 'custom', '⏰ Custom')}
+                {renderTypeBlock(plant, 'custom', t('reminders.custom'))}
               </div>
             ))}
           </div>

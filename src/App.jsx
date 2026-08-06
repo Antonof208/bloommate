@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { supabase } from './lib/supabase'
+import { applyUserLanguage } from './i18n'
 import Auth from './pages/Auth'
 import Home from './pages/Home'
 import AddPlant from './pages/AddPlant'
@@ -18,10 +19,12 @@ function App() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
+      applyUserLanguage(session?.user?.user_metadata?.language)
       setLoading(false)
     })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
+      applyUserLanguage(session?.user?.user_metadata?.language)
     })
     return () => subscription.unsubscribe()
   }, [])

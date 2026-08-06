@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { IconSearch, IconArrowLeft, IconPlus, IconCheck, IconCamera, IconX, IconRefresh } from '@tabler/icons-react'
 import { supabase } from '../lib/supabase'
 import { searchPlants, getPlantDetails, getCareGuide } from '../lib/perenual'
@@ -62,6 +63,7 @@ function resizeImageToBase64(file, maxDim = 1024, quality = 0.8) {
 
 export default function AddPlant() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [searching, setSearching] = useState(false)
@@ -95,7 +97,7 @@ export default function AddPlant() {
     debounceRef.current = setTimeout(async () => {
       setSearching(true); setSearchError(null)
       try { const data = await searchPlants(query); setResults(data) }
-      catch (err) { setSearchError("Couldn't reach the plant database. Try again or add manually."); setResults([]) }
+      catch (err) { setSearchError(t('addPlant.searchUnreachable')); setResults([]) }
       finally { setSearching(false) }
     }, 500)
     return () => clearTimeout(debounceRef.current)
@@ -142,7 +144,7 @@ export default function AddPlant() {
       })
       setScanOrigin(false)
       setMode('form')
-    } catch (err) { setSearchError("Couldn't load details. Try another or add manually.") }
+    } catch (err) { setSearchError(t('addPlant.detailsLoadError')) }
     finally { setLoadingDetails(false) }
   }
 
@@ -163,7 +165,7 @@ export default function AddPlant() {
       setScanPreview(dataUrl)
       setScanBase64(dataUrl.split(',')[1])
     } catch (err) {
-      setScanError('Could not read that photo. Please try another.')
+      setScanError(t('addPlant.photoReadError'))
     }
   }
 
@@ -177,7 +179,7 @@ export default function AddPlant() {
       })
       if (error) throw error
       if (!data || !data.identified) {
-        setScanError("Couldn't clearly identify a plant in that photo. Try a clearer, closer photo, or add it manually.")
+        setScanError(t('addPlant.couldNotIdentify'))
         return
       }
       setForm({
@@ -205,7 +207,7 @@ export default function AddPlant() {
       setMode('form')
     } catch (err) {
       console.error('Identify error:', err)
-      setScanError('Could not identify that plant. Please try again.')
+      setScanError(t('addPlant.identifyError'))
     } finally {
       setScanIdentifying(false)
     }
@@ -268,7 +270,7 @@ export default function AddPlant() {
         await finishSaveFlow()
       }
     } catch (err) {
-      setSearchError('Could not save your plant. Please try again.')
+      setSearchError(t('addPlant.couldNotSave'))
       setSaving(false)
     }
   }
@@ -309,7 +311,7 @@ export default function AddPlant() {
   if (saved) return (
     <div className="addplant-celebrate">
       <img src={celebratingMascot} alt="BloomMate celebrating" className="addplant-mascot-large" />
-      <h2>{form.nickname} added! 🌱</h2>
+      <h2>{t('addPlant.plantAdded', { name: form.nickname })}</h2>
       <AchievementToast achievement={toastAchievement} onDismiss={() => setToastAchievement(null)} />
     </div>
   )
@@ -318,19 +320,19 @@ export default function AddPlant() {
     <div className="addplant-page">
       <div className="addplant-header">
         <button className="addplant-back" onClick={() => mode === 'form' ? goToTab('search') : navigate('/')}><IconArrowLeft size={22} /></button>
-        <h1>{mode === 'form' ? 'Plant details' : 'Add a plant'}</h1>
+        <h1>{mode === 'form' ? t('addPlant.headerDetails') : t('addPlant.headerAdd')}</h1>
       </div>
 
       {mode !== 'form' && (
         <div className="addplant-tabs">
           <button className={`addplant-tab ${mode === 'scan' ? 'is-active' : ''}`} onClick={() => goToTab('scan')}>
-            📷 Scan
+            {t('addPlant.tabScan')}
           </button>
           <button className={`addplant-tab ${mode === 'search' ? 'is-active' : ''}`} onClick={() => goToTab('search')}>
-            🔍 Search
+            {t('addPlant.tabSearch')}
           </button>
           <button className="addplant-tab" onClick={startManualEntry}>
-            ✏️ Manual
+            {t('addPlant.tabManual')}
           </button>
         </div>
       )}
@@ -340,14 +342,14 @@ export default function AddPlant() {
           {!scanPreview ? (
             <button className="addplant-scan-upload" onClick={() => scanFileInputRef.current?.click()}>
               <IconCamera size={32} />
-              <span>Take or choose a photo</span>
-              <span className="addplant-scan-upload-sub">The AI will identify the plant and fill in care info for you</span>
+              <span>{t('addPlant.scanUpload')}</span>
+              <span className="addplant-scan-upload-sub">{t('addPlant.scanUploadSub')}</span>
             </button>
           ) : (
             <div className="addplant-scan-preview-wrap">
               <img src={scanPreview} alt="Scanned plant" className="addplant-scan-preview" />
               <button className="addplant-scan-remove" onClick={() => { resetScanState() }}>
-                <IconX size={16} /> Choose another
+                <IconX size={16} /> {t('addPlant.chooseAnother')}
               </button>
             </div>
           )}
@@ -362,14 +364,14 @@ export default function AddPlant() {
           {scanIdentifying && (
             <div className="addplant-loading">
               <img src={thinkingMascot} alt="BloomMate thinking" className="addplant-mascot-small" />
-              <p>Identifying your plant...</p>
+              <p>{t('addPlant.identifying')}</p>
             </div>
           )}
           {scanError && <p className="addplant-error">{scanError}</p>}
 
           {scanPreview && !scanIdentifying && (
             <button className="addplant-save-btn" onClick={() => handleIdentify()}>
-              <IconCheck size={18} /> Identify this plant
+              <IconCheck size={18} /> {t('addPlant.identifyBtn')}
             </button>
           )}
         </div>
@@ -379,9 +381,9 @@ export default function AddPlant() {
         <>
           <div className="addplant-search-bar">
             <IconSearch size={20} className="addplant-search-icon" />
-            <input type="text" placeholder="Search for a plant (e.g. monstera)" value={query} onChange={(e) => setQuery(e.target.value)} autoFocus />
+            <input type="text" placeholder={t('addPlant.searchPlaceholder')} value={query} onChange={(e) => setQuery(e.target.value)} autoFocus />
           </div>
-          {searching && <div className="addplant-loading"><img src={thinkingMascot} alt="BloomMate thinking" className="addplant-mascot-small" /><p>Searching...</p></div>}
+          {searching && <div className="addplant-loading"><img src={thinkingMascot} alt="BloomMate thinking" className="addplant-mascot-small" /><p>{t('addPlant.searching')}</p></div>}
           {searchError && <p className="addplant-error">{searchError}</p>}
           {!searching && results.length > 0 && (
             <div className="addplant-results">
@@ -393,114 +395,114 @@ export default function AddPlant() {
               ))}
             </div>
           )}
-          {!searching && query.trim().length >= 2 && results.length === 0 && !searchError && <p className="addplant-empty">No matches found.</p>}
+          {!searching && query.trim().length >= 2 && results.length === 0 && !searchError && <p className="addplant-empty">{t('addPlant.noMatches')}</p>}
         </>
       )}
 
       {mode === 'form' && (
         <form className="addplant-form" onSubmit={handleSave}>
-          {loadingDetails && <p>Loading plant info...</p>}
+          {loadingDetails && <p>{t('addPlant.loadingPlantInfo')}</p>}
           {(scanPreview || form.image_url) && (
             <img src={scanPreview || form.image_url} alt={form.common_name} className="addplant-form-image" />
           )}
           {scanOrigin && (
             <>
               <p className="addplant-disclaimer">
-                🤖 AI identification isn't always perfect — please double-check the details below before saving.
+                {t('addPlant.aiDisclaimer')}
               </p>
               {scanIdentifying ? (
                 <div className="addplant-loading">
                   <img src={thinkingMascot} alt="BloomMate thinking" className="addplant-mascot-small" />
-                  <p>Trying again...</p>
+                  <p>{t('addPlant.tryingAgain')}</p>
                 </div>
               ) : (
                 <button type="button" className="addplant-retry-btn" onClick={handleRetryIdentify}>
-                  <IconRefresh size={16} /> Not my plant? Try again
+                  <IconRefresh size={16} /> {t('addPlant.notMyPlant')}
                 </button>
               )}
               {scanError && <p className="addplant-error">{scanError}</p>}
             </>
           )}
 
-          <p className="addplant-form-section-title">Basic info</p>
-          <label>Nickname *<input type="text" value={form.nickname} onChange={(e) => updateField('nickname', e.target.value)} placeholder="What do you call this plant?" required /></label>
-          <label>Common name<input type="text" value={form.common_name} onChange={(e) => updateField('common_name', e.target.value)} /></label>
-          <label>Scientific name<input type="text" value={form.scientific_name} onChange={(e) => updateField('scientific_name', e.target.value)} /></label>
+          <p className="addplant-form-section-title">{t('addPlant.sectionBasicInfo')}</p>
+          <label>{t('addPlant.nickname')}<input type="text" value={form.nickname} onChange={(e) => updateField('nickname', e.target.value)} placeholder={t('addPlant.nicknamePlaceholder')} required /></label>
+          <label>{t('addPlant.commonName')}<input type="text" value={form.common_name} onChange={(e) => updateField('common_name', e.target.value)} /></label>
+          <label>{t('addPlant.scientificName')}<input type="text" value={form.scientific_name} onChange={(e) => updateField('scientific_name', e.target.value)} /></label>
 
-          <p className="addplant-form-section-title">Plant passport</p>
-          <label>💧 Watering
+          <p className="addplant-form-section-title">{t('addPlant.sectionPassport')}</p>
+          <label>{t('addPlant.fieldWatering')}
             <select value={form.watering} onChange={(e) => updateField('watering', e.target.value)}>
-              <option value="">— Not set —</option>
-              {WATERING_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              <option value="">{t('common.notSet')}</option>
+              {WATERING_OPTIONS.map((o) => <option key={o.value} value={o.value}>{t(o.labelKey)}</option>)}
             </select>
           </label>
-          <label>☀️ Sunlight
+          <label>{t('addPlant.fieldSunlight')}
             <select value={form.sunlight} onChange={(e) => updateField('sunlight', e.target.value)}>
-              <option value="">— Not set —</option>
-              {SUNLIGHT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              <option value="">{t('common.notSet')}</option>
+              {SUNLIGHT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{t(o.labelKey)}</option>)}
             </select>
           </label>
-          <label>🌱 Soil type
+          <label>{t('addPlant.fieldSoilType')}
             <select value={form.soil_type} onChange={(e) => updateField('soil_type', e.target.value)}>
-              <option value="">— Not set —</option>
-              {SOIL_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              <option value="">{t('common.notSet')}</option>
+              {SOIL_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{t(o.labelKey)}</option>)}
             </select>
           </label>
-          <label>💨 Humidity
+          <label>{t('addPlant.fieldHumidity')}
             <select value={form.humidity} onChange={(e) => updateField('humidity', e.target.value)}>
-              <option value="">— Not set —</option>
-              {HUMIDITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              <option value="">{t('common.notSet')}</option>
+              {HUMIDITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{t(o.labelKey)}</option>)}
             </select>
           </label>
-          <label>pH level
+          <label>{t('addPlant.fieldPhLevel')}
             <select value={form.ph_level} onChange={(e) => updateField('ph_level', e.target.value)}>
-              <option value="">— Not set —</option>
-              {PH_LEVEL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              <option value="">{t('common.notSet')}</option>
+              {PH_LEVEL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{t(o.labelKey)}</option>)}
             </select>
           </label>
 
-          <p className="addplant-form-section-title">Extended profile</p>
+          <p className="addplant-form-section-title">{t('addPlant.sectionExtended')}</p>
           <div className="addplant-number-row">
-            <label>Temp min (°C)<input type="number" value={form.temp_min} onChange={(e) => updateField('temp_min', e.target.value)} placeholder="e.g. 18" /></label>
-            <label>Temp max (°C)<input type="number" value={form.temp_max} onChange={(e) => updateField('temp_max', e.target.value)} placeholder="e.g. 24" /></label>
+            <label>{t('addPlant.tempMin')}<input type="number" value={form.temp_min} onChange={(e) => updateField('temp_min', e.target.value)} placeholder={t('addPlant.tempMinPlaceholder')} /></label>
+            <label>{t('addPlant.tempMax')}<input type="number" value={form.temp_max} onChange={(e) => updateField('temp_max', e.target.value)} placeholder={t('addPlant.tempMaxPlaceholder')} /></label>
           </div>
-          <label>Fertilizer frequency
+          <label>{t('addPlant.fieldFertilizerFrequency')}
             <select value={form.fertilizer_frequency} onChange={(e) => updateField('fertilizer_frequency', e.target.value)}>
-              <option value="">— Not set —</option>
-              {FERTILIZER_FREQUENCY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              <option value="">{t('common.notSet')}</option>
+              {FERTILIZER_FREQUENCY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{t(o.labelKey)}</option>)}
             </select>
           </label>
-          <label>Pruning frequency
+          <label>{t('addPlant.fieldPruningFrequency')}
             <select value={form.pruning_frequency} onChange={(e) => updateField('pruning_frequency', e.target.value)}>
-              <option value="">— Not set —</option>
-              {PRUNING_FREQUENCY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              <option value="">{t('common.notSet')}</option>
+              {PRUNING_FREQUENCY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{t(o.labelKey)}</option>)}
             </select>
           </label>
-          <label>Cycle
+          <label>{t('addPlant.fieldCycle')}
             <select value={form.cycle} onChange={(e) => updateField('cycle', e.target.value)}>
-              <option value="">— Not set —</option>
-              {CYCLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              <option value="">{t('common.notSet')}</option>
+              {CYCLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{t(o.labelKey)}</option>)}
             </select>
           </label>
-          <label>Difficulty
+          <label>{t('addPlant.fieldDifficulty')}
             <select value={form.care_level} onChange={(e) => updateField('care_level', e.target.value)}>
-              <option value="">— Not set —</option>
-              {DIFFICULTY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              <option value="">{t('common.notSet')}</option>
+              {DIFFICULTY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{t(o.labelKey)}</option>)}
             </select>
           </label>
 
-          <p className="addplant-form-section-title">Toxicity</p>
+          <p className="addplant-form-section-title">{t('addPlant.sectionToxicity')}</p>
           <label className="addplant-checkbox-row">
             <input type="checkbox" checked={form.poisonous_to_pets} onChange={(e) => updateField('poisonous_to_pets', e.target.checked)} />
-            Poisonous to pets
+            {t('addPlant.poisonousToPets')}
           </label>
           <label className="addplant-checkbox-row">
             <input type="checkbox" checked={form.poisonous_to_humans} onChange={(e) => updateField('poisonous_to_humans', e.target.checked)} />
-            Poisonous to humans
+            {t('addPlant.poisonousToHumans')}
           </label>
 
           {searchError && <p className="addplant-error">{searchError}</p>}
-          <button type="submit" className="addplant-save-btn" disabled={saving}><IconCheck size={18} />{saving ? 'Saving...' : 'Save plant'}</button>
+          <button type="submit" className="addplant-save-btn" disabled={saving}><IconCheck size={18} />{saving ? t('common.saving') : t('addPlant.savePlant')}</button>
         </form>
       )}
 
@@ -508,18 +510,17 @@ export default function AddPlant() {
         <div className="addplant-modal-overlay">
           <div className="addplant-modal" onClick={(e) => e.stopPropagation()}>
             <div className="addplant-modal-header">
-              <h3>💧 Set a watering reminder?</h3>
+              <h3>{t('addPlant.reminderModalTitle')}</h3>
             </div>
             <p>
-              Based on {form.nickname}'s needs, we suggest watering every {suggestedReminderDays} day{suggestedReminderDays === 1 ? '' : 's'}.
-              Want to turn on a reminder now? You can always change it later.
+              {t('addPlant.reminderModalBody', { name: form.nickname, days: suggestedReminderDays, count: suggestedReminderDays })}
             </p>
             <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
               <button className="addplant-save-btn" style={{ margin: 0 }} onClick={() => handleReminderChoice(true)} disabled={settingReminder}>
-                <IconCheck size={18} /> {settingReminder ? 'Saving...' : 'Yes, remind me'}
+                <IconCheck size={18} /> {settingReminder ? t('common.saving') : t('addPlant.yesRemindMe')}
               </button>
               <button className="addplant-reminder-no-btn" onClick={() => handleReminderChoice(false)} disabled={settingReminder}>
-                No thanks
+                {t('addPlant.noThanks')}
               </button>
             </div>
           </div>

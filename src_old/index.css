@@ -1,0 +1,445 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap');
+
+/* ─── TOKENS ─────────────────────────────────── */
+:root {
+  --green:        #3DCC78;
+  --green-dark:   #2AA862;
+  --green-xdark:  #1A7845;
+  --green-light:  #E8FFF2;
+  --orange:       #FF6B35;
+  --yellow:       #FFD60A;
+
+  --bg:           #F0FDF4;
+  --surface:      #FFFFFF;
+  --surface-2:    #F7FFF9;
+  --text:         #14291E;
+  --text-muted:   #6B8C78;
+  --border:       #C6F0D8;
+
+  --radius-sm:    10px;
+  --radius:       16px;
+  --radius-lg:    24px;
+  --radius-xl:    32px;
+
+  --shadow-sm:    0 1px 3px rgba(0,0,0,0.07);
+  --shadow:       0 4px 12px rgba(0,0,0,0.09);
+  --shadow-lg:    0 8px 24px rgba(0,0,0,0.11);
+}
+
+[data-theme="dark"] {
+  --bg:           #111D17;
+  --surface:      #1C2E24;
+  --surface-2:    #243B2D;
+  --text:         #E8FFF2;
+  --text-muted:   #7BA890;
+  --border:       #2D4A38;
+  --green-light:  #1A3D2B;
+}
+
+/* ─── RESET ──────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: 'Nunito', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  max-width: 480px;
+  margin: 0 auto;
+  transition: background 0.2s, color 0.2s;
+}
+
+/* ─── SPLASH ─────────────────────────────────── */
+.splash {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.splash-logo {
+  font-size: 64px;
+  animation: bounce 1.2s ease-in-out infinite;
+}
+
+/* ─── BUTTONS ────────────────────────────────── */
+button {
+  font-family: 'Nunito', sans-serif;
+  cursor: pointer;
+  border: none;
+  outline: none;
+}
+
+.btn-primary {
+  display: block;
+  width: 100%;
+  padding: 16px;
+  background: var(--green);
+  color: white;
+  font-size: 16px;
+  font-weight: 800;
+  border-radius: var(--radius);
+  transition: transform 0.1s, box-shadow 0.1s;
+  box-shadow: 0 4px 0 var(--green-dark);
+  letter-spacing: 0.2px;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 var(--green-dark);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 var(--green-dark);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: var(--radius);
+  border: 2px solid var(--border);
+  transition: border-color 0.2s, transform 0.1s;
+}
+
+.btn-google:hover {
+  border-color: var(--green);
+  transform: translateY(-1px);
+}
+
+.btn-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--border);
+  color: var(--text);
+  transition: border-color 0.2s;
+}
+
+.btn-icon:hover {
+  border-color: var(--green);
+}
+
+/* ─── INPUTS ─────────────────────────────────── */
+input {
+  font-family: 'Nunito', sans-serif;
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  background: var(--surface-2);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  transition: border-color 0.2s, background 0.2s;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--green);
+  background: var(--surface);
+}
+
+input::placeholder {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* ─── LAYOUT ─────────────────────────────────── */
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 88px;
+}
+
+.content {
+  flex: 1;
+  padding: 8px 16px 16px;
+}
+
+/* ─── AUTH ───────────────────────────────────── */
+.auth {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-hero {
+  background: linear-gradient(155deg, var(--green-xdark) 0%, var(--green) 100%);
+  padding: 20px 32px 52px;
+  text-align: center;
+  color: white;
+}
+
+.auth-mascot {
+  font-size: 72px;
+  display: block;
+  margin-bottom: 12px;
+  animation: float 3s ease-in-out infinite;
+}
+
+.auth-hero h1 {
+  font-size: 38px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  margin-bottom: 6px;
+}
+
+.auth-hero p {
+  font-size: 15px;
+  font-weight: 600;
+  opacity: 0.88;
+}
+
+.auth-card {
+  flex: 1;
+  background: var(--surface);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  margin-top: -28px;
+  padding: 32px 24px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
+}
+
+.auth-tabs {
+  display: flex;
+  background: var(--surface-2);
+  border-radius: var(--radius);
+  padding: 4px;
+  gap: 4px;
+}
+
+.auth-tabs button {
+  flex: 1;
+  padding: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+}
+
+.auth-tabs button.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.auth-error {
+  color: #EF4444;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  padding: 8px 12px;
+  background: #FEF2F2;
+  border-radius: var(--radius-sm);
+}
+
+.auth-message {
+  color: var(--green-dark);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  padding: 8px 12px;
+  background: var(--green-light);
+  border-radius: var(--radius-sm);
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ─── APP HEADER ─────────────────────────────── */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 16px 12px;
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 10;
+}
+
+.app-header h2 {
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.header-greeting {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+/* ─── EMPTY STATE ────────────────────────────── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 32px;
+  text-align: center;
+}
+
+.empty-emoji {
+  font-size: 72px;
+  animation: float 3s ease-in-out infinite;
+}
+
+.empty-state h3 {
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.empty-state p {
+  font-size: 15px;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+/* ─── BOTTOM NAV ─────────────────────────────── */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  background: var(--surface);
+  border-top: 2px solid var(--border);
+  display: flex;
+  padding: 8px 8px 20px;
+  z-index: 100;
+}
+
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: var(--radius);
+  transition: color 0.2s;
+}
+
+.nav-item.active {
+  color: var(--green-dark);
+}
+
+.nav-item svg {
+  transition: transform 0.2s;
+}
+
+.nav-item.active svg {
+  transform: scale(1.15);
+}
+
+.nav-add {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: var(--radius);
+}
+
+.nav-add-icon {
+  width: 46px;
+  height: 46px;
+  background: var(--green);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 0 var(--green-dark);
+  transition: transform 0.1s, box-shadow 0.1s;
+  margin-top: -18px;
+  color: white;
+}
+
+.nav-add:active .nav-add-icon {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 var(--green-dark);
+}
+
+/* ─── ANIMATIONS ─────────────────────────────── */
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-12px); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
+}
+
+.auth-mascot {
+  width: 220px;
+  height: auto;
+  display: block;
+  margin: 0 auto 12px;
+}

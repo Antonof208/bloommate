@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   IconArrowLeft, IconDroplet, IconSun, IconRefresh, IconGauge,
   IconPencil, IconTrash, IconCheck, IconX, IconLeaf, IconScissors,
@@ -20,18 +21,30 @@ import './PlantDetail.css'
 import PhotoLightbox from '../components/PhotoLightbox'
 
 const CARE_ACTIONS = [
-  { key: 'water', label: 'Water', icon: IconDroplet },
-  { key: 'fertilize', label: 'Fertilize', icon: IconLeaf },
-  { key: 'cut', label: 'Cut', icon: IconScissors },
+  { key: 'water', icon: IconDroplet },
+  { key: 'fertilize', icon: IconLeaf },
+  { key: 'cut', icon: IconScissors },
 ]
 
 const CARE_GUIDE_META = [
-  { key: 'watering', emoji: '💧', label: 'Watering' },
-  { key: 'sunlight', emoji: '☀️', label: 'Sunlight' },
-  { key: 'pruning', emoji: '✂️', label: 'Pruning' },
+  { key: 'watering', emoji: '💧', labelKey: 'plantDetail.careGuideWatering' },
+  { key: 'sunlight', emoji: '☀️', labelKey: 'plantDetail.careGuideSunlight' },
+  { key: 'pruning', emoji: '✂️', labelKey: 'plantDetail.careGuidePruning' },
 ]
 
+// Canonical (English) chip values, used both for display lookup and for what
+// gets saved as custom_action — kept in English regardless of UI language so
+// things like the repotting-suggestion check below stay consistent across
+// languages. The chip label a person sees is translated via CHIP_LABEL_KEYS.
 const OTHER_CHIPS = ['Repotting', 'Misting', 'Pest Control', 'Cleaning leaves', 'Propagation', 'Deadheading']
+const CHIP_LABEL_KEYS = {
+  'Repotting': 'plantDetail.otherChips.repotting',
+  'Misting': 'plantDetail.otherChips.misting',
+  'Pest Control': 'plantDetail.otherChips.pestControl',
+  'Cleaning leaves': 'plantDetail.otherChips.cleaningLeaves',
+  'Propagation': 'plantDetail.otherChips.propagation',
+  'Deadheading': 'plantDetail.otherChips.deadheading',
+}
 
 const WATERING_TO_DAYS = { 'frequent': 1, 'average': 3, 'minimum': 7, 'none': null, 'soak_and_dry': 10, 'bottom_water': 4 }
 function defaultFrequencyDays(wateringText) {
@@ -39,6 +52,9 @@ function defaultFrequencyDays(wateringText) {
   return WATERING_TO_DAYS[wateringText.toLowerCase().trim()] ?? null
 }
 
+// Legacy free-text fallback labels (pre-dropdown data). These can't be
+// translated since they're arbitrary stored text, so they're shown as-is
+// (in English) regardless of app language — a known, small gap.
 const WATERING_LABELS = {
   frequent: 'Frequent',
   average: 'Average',
@@ -53,9 +69,9 @@ function legacyWateringLabel(raw) {
   const key = raw.toLowerCase().trim().replace(/[_-]/g, ' ')
   return WATERING_LABELS[key] || raw
 }
-function displayWatering(raw) {
+function displayWatering(raw, t) {
   if (!raw) return null
-  const exact = labelFor(WATERING_OPTIONS, raw)
+  const exact = labelFor(WATERING_OPTIONS, raw, t)
   if (exact && exact !== raw) return exact
   return legacyWateringLabel(raw)
 }
@@ -88,42 +104,44 @@ function legacySunlightLabel(raw) {
   }
   return raw
 }
-function displaySunlight(raw) {
+function displaySunlight(raw, t) {
   if (!raw) return null
-  const exact = labelFor(SUNLIGHT_OPTIONS, raw)
+  const exact = labelFor(SUNLIGHT_OPTIONS, raw, t)
   if (exact && exact !== raw) return exact
   return legacySunlightLabel(raw)
 }
 
-const DIFFICULTY_META = {
-  easy: { emoji: '🟢', label: 'Easy' },
-  moderate: { emoji: '🟡', label: 'Moderate' },
-  medium: { emoji: '🟡', label: 'Moderate' },
-  advanced: { emoji: '🔴', label: 'Advanced' },
-  difficult: { emoji: '🔴', label: 'Advanced' },
+const DIFFICULTY_EMOJI = {
+  easy: '🟢',
+  moderate: '🟡',
+  medium: '🟡',
+  advanced: '🔴',
+  difficult: '🔴',
 }
-function difficultyBadge(careLevel) {
+const DIFFICULTY_KEY_MAP = { easy: 'easy', moderate: 'moderate', medium: 'moderate', advanced: 'advanced', difficult: 'advanced' }
+function difficultyBadge(careLevel, t) {
   if (!careLevel) return null
   const key = careLevel.toLowerCase().trim()
-  return DIFFICULTY_META[key] || { emoji: '🟢', label: careLevel }
+  const emoji = DIFFICULTY_EMOJI[key] || '🟢'
+  const labelKey = DIFFICULTY_KEY_MAP[key]
+  const label = labelKey ? t(`difficultyBadge.${labelKey}`) : careLevel
+  return { emoji, label }
 }
 
-function toxicityBadge(plant) {
+function toxicityBadge(plant, t) {
   if (plant.poisonous_to_pets === null || plant.poisonous_to_pets === undefined) return null
   return plant.poisonous_to_pets
-    ? { emoji: '⚠️', label: 'Toxic to pets' }
-    : { emoji: '🐶', label: 'Safe for pets' }
+    ? { emoji: '⚠️', label: t('toxicity.toxicToPets') }
+    : { emoji: '🐶', label: t('toxicity.safeForPets') }
 }
 
-function humanToxicityBadge(plant) {
+function humanToxicityBadge(plant, t) {
   if (!plant.poisonous_to_humans) return null
-  return { emoji: '☣️', label: 'Toxic to humans' }
+  return { emoji: '☣️', label: t('toxicity.toxicToHumans') }
 }
 
-function formatHour(hour) {
-  const h = hour % 12 === 0 ? 12 : hour % 12
-  const suffix = hour < 12 ? 'AM' : 'PM'
-  return `${h}:00 ${suffix}`
+function formatHour(hour, locale) {
+  return new Date(2000, 0, 1, hour).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' })
 }
 
 const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => i)
@@ -131,6 +149,7 @@ const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => i)
 export default function PlantDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { t, i18n } = useTranslation()
   const [plant, setPlant] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -219,7 +238,7 @@ export default function PlantDetail() {
   async function fetchPlant() {
     setLoading(true); setError(null)
     const { data, error } = await supabase.from('plants').select('*').eq('id', id).single()
-    if (error) setError("Couldn't find that plant.")
+    if (error) setError(t('plantDetail.notFound'))
     else setPlant(data)
     setLoading(false)
   }
@@ -271,9 +290,9 @@ export default function PlantDetail() {
       await uploadPlantPhoto(user.id, id, file)
       await fetchMainPhoto()
       const unlocked = await checkAndUnlockAchievements(user.id)
-      setPhotoMessage(unlocked.includes('bloom-cam') ? 'Photo added! 🎉 Bloom Cam unlocked!' : 'Photo added!')
+      setPhotoMessage(unlocked.includes('bloom-cam') ? t('plantDetail.photoAddedBloomCam') : t('plantDetail.photoAdded'))
     } catch (err) {
-      setPhotoMessage('Could not upload photo. Please try again.')
+      setPhotoMessage(t('plantDetail.photoUploadError'))
     } finally {
       setPhotoUploading(false)
       setTimeout(() => setPhotoMessage(null), 4000)
@@ -290,7 +309,7 @@ export default function PlantDetail() {
       const { error: streakError } = await supabase.rpc('bump_streak', { p_today: getLocalDateString() })
       if (streakError) console.error('Streak update failed:', streakError)
     } catch (err) {
-      setLogError('Could not log that. Please try again.')
+      setLogError(t('plantDetail.couldNotLog'))
     } finally {
       setLoggingAction(null)
     }
@@ -320,11 +339,11 @@ export default function PlantDetail() {
       if (label.toLowerCase() === 'repotting') {
         setSuggestionBanner({
           visible: true,
-          text: `🌿 You repotted ${plant.nickname}! Set a reminder to fertilize in 2 weeks?`,
+          text: t('plantDetail.repottedSuggestion', { name: plant.nickname }),
         })
       }
     } catch (err) {
-      setOtherError('Could not log that. Please try again.')
+      setOtherError(t('plantDetail.couldNotLog'))
     } finally {
       setOtherSaving(false)
     }
@@ -448,7 +467,7 @@ export default function PlantDetail() {
       if (error) throw error
       setPlant(data); setEditing(false)
     } catch (err) {
-      setSaveError('Could not save changes. Please try again.')
+      setSaveError(t('plantDetail.couldNotSaveChanges'))
     } finally {
       setSaving(false)
     }
@@ -461,7 +480,7 @@ export default function PlantDetail() {
       if (error) throw error
       navigate('/')
     } catch (err) {
-      setDeleteError('Could not delete this plant. Please try again.')
+      setDeleteError(t('plantDetail.couldNotDelete'))
       setDeleting(false)
     }
   }
@@ -501,7 +520,7 @@ export default function PlantDetail() {
       setNewNoteText('')
       setAddingNote(false)
     } catch (err) {
-      setNoteError('Could not save that note. Please try again.')
+      setNoteError(t('plantDetail.couldNotLog'))
     } finally {
       setSavingNote(false)
     }
@@ -559,7 +578,7 @@ export default function PlantDetail() {
         <div className="plantdetail-reminder-row">
           <div className="plantdetail-reminder-label">
             {enabled ? <IconBell size={18} /> : <IconBellOff size={18} />}
-            <span>{title} · {enabled ? 'on' : 'off'}</span>
+            <span>{title} · {enabled ? t('plantDetail.remindOn') : t('plantDetail.remindOff')}</span>
           </div>
           <button
             className={`plantdetail-reminder-toggle ${enabled ? 'is-on' : ''}`}
@@ -572,28 +591,28 @@ export default function PlantDetail() {
         {enabled && (
           <>
             <div className="plantdetail-reminder-divider" />
-            <p className="plantdetail-reminder-sublabel">Remind me · {formatHour(hour)}</p>
+            <p className="plantdetail-reminder-sublabel">{t('plantDetail.remindMeAt', { time: formatHour(hour, i18n.language) })}</p>
             <div className="plantdetail-reminder-time-btns">
               <button
                 className={`plantdetail-reminder-time-btn ${hour === 8 ? 'is-selected' : ''}`}
                 onClick={() => { handleReminderTime(careType, 8); setCustomOpen((prev) => ({ ...prev, [careType]: false })) }}
               >
-                🌅 Morning
-                <span className="plantdetail-reminder-time-sub">8:00 AM</span>
+                {t('plantDetail.morning')}
+                <span className="plantdetail-reminder-time-sub">{formatHour(8, i18n.language)}</span>
               </button>
               <button
                 className={`plantdetail-reminder-time-btn ${hour === 18 ? 'is-selected' : ''}`}
                 onClick={() => { handleReminderTime(careType, 18); setCustomOpen((prev) => ({ ...prev, [careType]: false })) }}
               >
-                🌆 Evening
-                <span className="plantdetail-reminder-time-sub">6:00 PM</span>
+                {t('plantDetail.evening')}
+                <span className="plantdetail-reminder-time-sub">{formatHour(18, i18n.language)}</span>
               </button>
               <button
                 className={`plantdetail-reminder-time-btn ${showCustomPicker ? 'is-selected' : ''}`}
                 onClick={() => setCustomOpen((prev) => ({ ...prev, [careType]: true }))}
               >
-                ⏰ Custom
-                <span className="plantdetail-reminder-time-sub">{isCustomHour ? formatHour(hour) : 'Pick time'}</span>
+                {t('plantDetail.custom')}
+                <span className="plantdetail-reminder-time-sub">{isCustomHour ? formatHour(hour, i18n.language) : t('plantDetail.pickTime')}</span>
               </button>
             </div>
 
@@ -604,16 +623,16 @@ export default function PlantDetail() {
                 onChange={(e) => handleReminderTime(careType, Number(e.target.value))}
               >
                 {HOUR_OPTIONS.map((h) => (
-                  <option key={h} value={h}>{formatHour(h)}</option>
+                  <option key={h} value={h}>{formatHour(h, i18n.language)}</option>
                 ))}
               </select>
             )}
 
             <p className="plantdetail-reminder-sublabel" style={{ marginTop: 12 }}>
-              {days == null ? 'Choose how often' : 'Every'}
+              {days == null ? t('plantDetail.chooseHowOften') : t('plantDetail.every')}
             </p>
             {days == null && noSuggestionAvailable && (
-              <p className="plantdetail-reminder-hint">No plant data to suggest a frequency — pick one below.</p>
+              <p className="plantdetail-reminder-hint">{t('plantDetail.noFrequencyHint')}</p>
             )}
             <div className="plantdetail-reminder-freq-btns">
               {[1, 2, 3, 5, 7, 14].map((d) => (
@@ -622,7 +641,7 @@ export default function PlantDetail() {
                   className={`plantdetail-reminder-freq-btn ${days === d ? 'is-selected' : ''}`}
                   onClick={() => handleReminderFrequency(careType, d)}
                 >
-                  {d === 1 ? 'day' : `${d}d`}
+                  {d === 1 ? t('plantDetail.day') : `${d}d`}
                 </button>
               ))}
             </div>
@@ -632,7 +651,7 @@ export default function PlantDetail() {
     )
   }
 
-  if (loading) return <div className="plantdetail-page"><div className="plantdetail-header"><button className="plantdetail-back" onClick={() => navigate('/')}><IconArrowLeft size={22} /></button></div><p className="plantdetail-loading">Loading...</p></div>
+  if (loading) return <div className="plantdetail-page"><div className="plantdetail-header"><button className="plantdetail-back" onClick={() => navigate('/')}><IconArrowLeft size={22} /></button></div><p className="plantdetail-loading">{t('common.loading')}</p></div>
   if (error) return <div className="plantdetail-page"><div className="plantdetail-header"><button className="plantdetail-back" onClick={() => navigate('/')}><IconArrowLeft size={22} /></button></div><p className="plantdetail-error">{error}</p></div>
   if (!plant) return null
 
@@ -641,12 +660,12 @@ export default function PlantDetail() {
       <div className="plantdetail-page">
         <div className="plantdetail-confirm">
           <img src={sadMascot} alt="BloomMate looking sad" className="plantdetail-confirm-mascot" />
-          <h2>Delete {plant.nickname}?</h2>
-          <p>This can't be undone.</p>
+          <h2>{t('plantDetail.deleteTitle', { name: plant.nickname })}</h2>
+          <p>{t('plantDetail.deleteWarning')}</p>
           {deleteError && <p className="plantdetail-error">{deleteError}</p>}
           <div className="plantdetail-confirm-actions">
-            <button className="plantdetail-cancel-btn" onClick={() => setConfirmingDelete(false)} disabled={deleting}>Keep it</button>
-            <button className="plantdetail-delete-btn" onClick={handleDelete} disabled={deleting}>{deleting ? 'Deleting...' : 'Delete'}</button>
+            <button className="plantdetail-cancel-btn" onClick={() => setConfirmingDelete(false)} disabled={deleting}>{t('plantDetail.keepIt')}</button>
+            <button className="plantdetail-delete-btn" onClick={handleDelete} disabled={deleting}>{deleting ? t('common.deleting') : t('common.delete')}</button>
           </div>
         </div>
       </div>
@@ -658,88 +677,88 @@ export default function PlantDetail() {
       <div className="plantdetail-page">
         <div className="plantdetail-header">
           <button className="plantdetail-back" onClick={() => setEditing(false)}><IconX size={22} /></button>
-          <h1>Edit plant</h1>
+          <h1>{t('plantDetail.editTitle')}</h1>
         </div>
         <form className="plantdetail-form" onSubmit={handleSaveEdit}>
-          <p className="plantdetail-form-section-title">Basic info</p>
-          <label>Nickname *<input type="text" value={form.nickname} onChange={(e) => updateField('nickname', e.target.value)} required /></label>
-          <label>Common name<input type="text" value={form.common_name} onChange={(e) => updateField('common_name', e.target.value)} /></label>
-          <label>Scientific name<input type="text" value={form.scientific_name} onChange={(e) => updateField('scientific_name', e.target.value)} /></label>
+          <p className="plantdetail-form-section-title">{t('addPlant.sectionBasicInfo')}</p>
+          <label>{t('addPlant.nickname')}<input type="text" value={form.nickname} onChange={(e) => updateField('nickname', e.target.value)} required /></label>
+          <label>{t('addPlant.commonName')}<input type="text" value={form.common_name} onChange={(e) => updateField('common_name', e.target.value)} /></label>
+          <label>{t('addPlant.scientificName')}<input type="text" value={form.scientific_name} onChange={(e) => updateField('scientific_name', e.target.value)} /></label>
 
-          <p className="plantdetail-form-section-title">Plant passport</p>
-          <label>💧 Watering
+          <p className="plantdetail-form-section-title">{t('addPlant.sectionPassport')}</p>
+          <label>{t('addPlant.fieldWatering')}
             <select value={form.watering} onChange={(e) => updateField('watering', e.target.value)}>
-              <option value="">— Not set —</option>
-              {WATERING_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              <option value="">{t('common.notSet')}</option>
+              {WATERING_OPTIONS.map((o) => <option key={o.value} value={o.value}>{t(o.labelKey)}</option>)}
             </select>
           </label>
-          <label>☀️ Sunlight
+          <label>{t('addPlant.fieldSunlight')}
             <select value={form.sunlight} onChange={(e) => updateField('sunlight', e.target.value)}>
-              <option value="">— Not set —</option>
-              {SUNLIGHT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              <option value="">{t('common.notSet')}</option>
+              {SUNLIGHT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{t(o.labelKey)}</option>)}
             </select>
           </label>
-          <label>🌱 Soil type
+          <label>{t('addPlant.fieldSoilType')}
             <select value={form.soil_type} onChange={(e) => updateField('soil_type', e.target.value)}>
-              <option value="">— Not set —</option>
-              {SOIL_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              <option value="">{t('common.notSet')}</option>
+              {SOIL_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{t(o.labelKey)}</option>)}
             </select>
           </label>
-          <label>💨 Humidity
+          <label>{t('addPlant.fieldHumidity')}
             <select value={form.humidity} onChange={(e) => updateField('humidity', e.target.value)}>
-              <option value="">— Not set —</option>
-              {HUMIDITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              <option value="">{t('common.notSet')}</option>
+              {HUMIDITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{t(o.labelKey)}</option>)}
             </select>
           </label>
-          <label>pH level
+          <label>{t('addPlant.fieldPhLevel')}
             <select value={form.ph_level} onChange={(e) => updateField('ph_level', e.target.value)}>
-              <option value="">— Not set —</option>
-              {PH_LEVEL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              <option value="">{t('common.notSet')}</option>
+              {PH_LEVEL_OPTIONS.map((o) => <option key={o.value} value={o.value}>{t(o.labelKey)}</option>)}
             </select>
           </label>
 
-          <p className="plantdetail-form-section-title">Extended profile</p>
+          <p className="plantdetail-form-section-title">{t('addPlant.sectionExtended')}</p>
           <div className="plantdetail-number-row">
-            <label>Temp min (°C)<input type="number" value={form.temp_min} onChange={(e) => updateField('temp_min', e.target.value)} placeholder="e.g. 18" /></label>
-            <label>Temp max (°C)<input type="number" value={form.temp_max} onChange={(e) => updateField('temp_max', e.target.value)} placeholder="e.g. 24" /></label>
+            <label>{t('addPlant.tempMin')}<input type="number" value={form.temp_min} onChange={(e) => updateField('temp_min', e.target.value)} placeholder={t('addPlant.tempMinPlaceholder')} /></label>
+            <label>{t('addPlant.tempMax')}<input type="number" value={form.temp_max} onChange={(e) => updateField('temp_max', e.target.value)} placeholder={t('addPlant.tempMaxPlaceholder')} /></label>
           </div>
-          <label>Fertilizer frequency
+          <label>{t('addPlant.fieldFertilizerFrequency')}
             <select value={form.fertilizer_frequency} onChange={(e) => updateField('fertilizer_frequency', e.target.value)}>
-              <option value="">— Not set —</option>
-              {FERTILIZER_FREQUENCY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              <option value="">{t('common.notSet')}</option>
+              {FERTILIZER_FREQUENCY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{t(o.labelKey)}</option>)}
             </select>
           </label>
-          <label>Pruning frequency
+          <label>{t('addPlant.fieldPruningFrequency')}
             <select value={form.pruning_frequency} onChange={(e) => updateField('pruning_frequency', e.target.value)}>
-              <option value="">— Not set —</option>
-              {PRUNING_FREQUENCY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              <option value="">{t('common.notSet')}</option>
+              {PRUNING_FREQUENCY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{t(o.labelKey)}</option>)}
             </select>
           </label>
-          <label>Cycle
+          <label>{t('addPlant.fieldCycle')}
             <select value={form.cycle} onChange={(e) => updateField('cycle', e.target.value)}>
-              <option value="">— Not set —</option>
-              {CYCLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              <option value="">{t('common.notSet')}</option>
+              {CYCLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{t(o.labelKey)}</option>)}
             </select>
           </label>
-          <label>Difficulty
+          <label>{t('addPlant.fieldDifficulty')}
             <select value={form.care_level} onChange={(e) => updateField('care_level', e.target.value)}>
-              <option value="">— Not set —</option>
-              {DIFFICULTY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              <option value="">{t('common.notSet')}</option>
+              {DIFFICULTY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{t(o.labelKey)}</option>)}
             </select>
           </label>
 
-          <p className="plantdetail-form-section-title">Toxicity</p>
+          <p className="plantdetail-form-section-title">{t('addPlant.sectionToxicity')}</p>
           <label className="plantdetail-checkbox-row">
             <input type="checkbox" checked={form.poisonous_to_pets} onChange={(e) => updateField('poisonous_to_pets', e.target.checked)} />
-            Poisonous to pets
+            {t('addPlant.poisonousToPets')}
           </label>
           <label className="plantdetail-checkbox-row">
             <input type="checkbox" checked={form.poisonous_to_humans} onChange={(e) => updateField('poisonous_to_humans', e.target.checked)} />
-            Poisonous to humans
+            {t('addPlant.poisonousToHumans')}
           </label>
 
           {saveError && <p className="plantdetail-error">{saveError}</p>}
-          <button type="submit" className="plantdetail-save-btn" disabled={saving}><IconCheck size={18} />{saving ? 'Saving...' : 'Save changes'}</button>
+          <button type="submit" className="plantdetail-save-btn" disabled={saving}><IconCheck size={18} />{saving ? t('common.saving') : t('plantDetail.saveChanges')}</button>
         </form>
       </div>
     )
@@ -749,17 +768,17 @@ export default function PlantDetail() {
   for (const log of logs) { if (!lastByAction[log.action]) lastByAction[log.action] = log }
   const displayImage = mainPhotoUrl || plant.image_url
 
-  const diffBadge = difficultyBadge(plant.care_level)
-  const toxBadge = toxicityBadge(plant)
-  const humanToxBadge = humanToxicityBadge(plant)
-  const wateringFriendly = displayWatering(plant.watering)
-  const sunlightFriendly = displaySunlight(plant.sunlight)
+  const diffBadge = difficultyBadge(plant.care_level, t)
+  const toxBadge = toxicityBadge(plant, t)
+  const humanToxBadge = humanToxicityBadge(plant, t)
+  const wateringFriendly = displayWatering(plant.watering, t)
+  const sunlightFriendly = displaySunlight(plant.sunlight, t)
   const wateringDays = plant.watering ? defaultFrequencyDays(plant.watering) : null
-  const soilFriendly = labelFor(SOIL_TYPE_OPTIONS, plant.soil_type)
-  const humidityFriendly = labelFor(HUMIDITY_OPTIONS, plant.humidity)
-  const phFriendly = labelFor(PH_LEVEL_OPTIONS, plant.ph_level)
-  const fertilizerFriendly = labelFor(FERTILIZER_FREQUENCY_OPTIONS, plant.fertilizer_frequency)
-  const pruningFriendly = labelFor(PRUNING_FREQUENCY_OPTIONS, plant.pruning_frequency)
+  const soilFriendly = labelFor(SOIL_TYPE_OPTIONS, plant.soil_type, t)
+  const humidityFriendly = labelFor(HUMIDITY_OPTIONS, plant.humidity, t)
+  const phFriendly = labelFor(PH_LEVEL_OPTIONS, plant.ph_level, t)
+  const fertilizerFriendly = labelFor(FERTILIZER_FREQUENCY_OPTIONS, plant.fertilizer_frequency, t)
+  const pruningFriendly = labelFor(PRUNING_FREQUENCY_OPTIONS, plant.pruning_frequency, t)
   const hasTempRange = plant.temp_min != null || plant.temp_max != null
 
   return (
@@ -787,7 +806,7 @@ export default function PlantDetail() {
         )}
 
         <button className="plantdetail-photo-btn" onClick={handlePhotoButtonClick} disabled={photoUploading}>
-          <IconCamera size={16} />{photoUploading ? 'Uploading...' : 'Add photo'}
+          <IconCamera size={16} />{photoUploading ? t('plantDetail.uploadingPhoto') : t('plantDetail.addPhoto')}
         </button>
         <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileSelected} />
       </div>
@@ -804,80 +823,80 @@ export default function PlantDetail() {
       <div className="plantdetail-passport">
         <button className="plantdetail-passport-card" onClick={scrollToProfile}>
           <div className="plantdetail-passport-emoji">💧</div>
-          <p className="plantdetail-passport-label">Watering</p>
+          <p className="plantdetail-passport-label">{t('plantDetail.passportWatering')}</p>
           <p className="plantdetail-passport-value">{wateringFriendly || '—'}</p>
         </button>
         <button className="plantdetail-passport-card" onClick={scrollToProfile}>
           <div className="plantdetail-passport-emoji">☀️</div>
-          <p className="plantdetail-passport-label">Sunlight</p>
+          <p className="plantdetail-passport-label">{t('plantDetail.passportSunlight')}</p>
           <p className="plantdetail-passport-value">{sunlightFriendly || '—'}</p>
         </button>
         <button className="plantdetail-passport-card" onClick={scrollToProfile}>
           <div className="plantdetail-passport-emoji">🌱</div>
-          <p className="plantdetail-passport-label">Soil</p>
+          <p className="plantdetail-passport-label">{t('plantDetail.passportSoil')}</p>
           <p className="plantdetail-passport-value">{soilFriendly || '—'}</p>
         </button>
         <button className="plantdetail-passport-card" onClick={scrollToProfile}>
           <div className="plantdetail-passport-emoji">💨</div>
-          <p className="plantdetail-passport-label">Humidity</p>
+          <p className="plantdetail-passport-label">{t('plantDetail.passportHumidity')}</p>
           <p className="plantdetail-passport-value">{humidityFriendly || '—'}</p>
         </button>
       </div>
 
       <div className="plantdetail-accordion" ref={profileRef}>
         <button className="plantdetail-accordion-header" onClick={() => setProfileOpen((v) => !v)}>
-          <span>📖 Full Plant Profile</span>
+          <span>{t('plantDetail.fullProfile')}</span>
           {profileOpen ? <IconChevronUp size={20} /> : <IconChevronDown size={20} />}
         </button>
         {profileOpen && (
           <div className="plantdetail-accordion-body">
             <div className="plantdetail-accordion-item">
-              <strong>Watering:</strong> {wateringFriendly || 'Information not added yet'}
-              {wateringDays && ` — water roughly every ${wateringDays} day${wateringDays === 1 ? '' : 's'}.`}
+              <strong>{t('plantDetail.labelWatering')}</strong> {wateringFriendly || t('common.notAddedYet')}
+              {wateringDays && t('plantDetail.waterEveryDays', { days: wateringDays, count: wateringDays })}
             </div>
             <div className="plantdetail-accordion-item">
-              <strong>Sunlight:</strong> {sunlightFriendly || 'Information not added yet'}
+              <strong>{t('plantDetail.labelSunlight')}</strong> {sunlightFriendly || t('common.notAddedYet')}
             </div>
             <div className="plantdetail-accordion-item">
-              <strong>Soil type:</strong> {soilFriendly || 'Information not added yet'}
+              <strong>{t('plantDetail.labelSoilType')}</strong> {soilFriendly || t('common.notAddedYet')}
             </div>
             <div className="plantdetail-accordion-item">
-              <strong>Soil pH:</strong> {phFriendly || 'Information not added yet'}
+              <strong>{t('plantDetail.labelSoilPh')}</strong> {phFriendly || t('common.notAddedYet')}
             </div>
             <div className="plantdetail-accordion-item">
-              <strong>Humidity:</strong> {humidityFriendly || 'Information not added yet'}
+              <strong>{t('plantDetail.labelHumidity')}</strong> {humidityFriendly || t('common.notAddedYet')}
             </div>
             <div className="plantdetail-accordion-item">
-              <strong>Temperature range:</strong> {hasTempRange ? `${plant.temp_min ?? '?'}–${plant.temp_max ?? '?'}°C` : 'Information not added yet'}
+              <strong>{t('plantDetail.labelTempRange')}</strong> {hasTempRange ? `${plant.temp_min ?? '?'}–${plant.temp_max ?? '?'}°C` : t('common.notAddedYet')}
             </div>
             <div className="plantdetail-accordion-item">
-              <strong>Fertilizer schedule:</strong> {fertilizerFriendly || 'Information not added yet'}
+              <strong>{t('plantDetail.labelFertilizerSchedule')}</strong> {fertilizerFriendly || t('common.notAddedYet')}
             </div>
             <div className="plantdetail-accordion-item">
-              <strong>Pruning advice:</strong> {pruningFriendly || 'Information not added yet'}
+              <strong>{t('plantDetail.labelPruningAdvice')}</strong> {pruningFriendly || t('common.notAddedYet')}
             </div>
             <div className="plantdetail-accordion-item">
-              <strong>Cycle:</strong> {plant.cycle || 'Information not added yet'}
+              <strong>{t('plantDetail.labelCycle')}</strong> {plant.cycle || t('common.notAddedYet')}
             </div>
             <div className="plantdetail-accordion-item">
-              <strong>Care level:</strong> {plant.care_level || 'Information not added yet'}
+              <strong>{t('plantDetail.labelCareLevel')}</strong> {plant.care_level || t('common.notAddedYet')}
             </div>
             <div className="plantdetail-accordion-item">
-              <strong>Toxicity to pets:</strong> {toxBadge ? `${toxBadge.emoji} ${toxBadge.label}` : 'Information not added yet'}
+              <strong>{t('plantDetail.labelToxicPets')}</strong> {toxBadge ? `${toxBadge.emoji} ${toxBadge.label}` : t('common.notAddedYet')}
             </div>
             <div className="plantdetail-accordion-item">
-              <strong>Toxicity to humans:</strong> {humanToxBadge ? `${humanToxBadge.emoji} ${humanToxBadge.label}` : 'Not toxic to humans'}
+              <strong>{t('plantDetail.labelToxicHumans')}</strong> {humanToxBadge ? `${humanToxBadge.emoji} ${humanToxBadge.label}` : t('plantDetail.notToxicToHumans')}
             </div>
 
             <div className="plantdetail-notes-section">
-              <p className="plantdetail-notes-title">📝 Notes</p>
+              <p className="plantdetail-notes-title">{t('plantDetail.notesTitle')}</p>
 
               {addingNote ? (
                 <div className="plantdetail-note-editor">
                   <textarea
                     value={newNoteText}
                     onChange={(e) => setNewNoteText(e.target.value)}
-                    placeholder="Write a note about this plant..."
+                    placeholder={t('plantDetail.notePlaceholder')}
                     autoFocus
                   />
                   {noteError && <p className="plantdetail-error">{noteError}</p>}
@@ -887,27 +906,27 @@ export default function PlantDetail() {
                       onClick={handleAddNote}
                       disabled={savingNote || !newNoteText.trim()}
                     >
-                      <IconCheck size={16} /> Save
+                      <IconCheck size={16} /> {t('common.save')}
                     </button>
                     <button
                       className="plantdetail-note-cancel-btn"
                       onClick={() => { setAddingNote(false); setNewNoteText(''); setNoteError(null) }}
                       disabled={savingNote}
                     >
-                      <IconX size={16} /> Cancel
+                      <IconX size={16} /> {t('common.cancel')}
                     </button>
                   </div>
                 </div>
               ) : (
                 <button className="plantdetail-note-add-btn" onClick={() => setAddingNote(true)}>
-                  <IconPlus size={16} /> Add note
+                  <IconPlus size={16} /> {t('plantDetail.addNote')}
                 </button>
               )}
 
               {notesLoading ? (
-                <p className="plantdetail-notes-empty">Loading notes...</p>
+                <p className="plantdetail-notes-empty">{t('plantDetail.loadingNotes')}</p>
               ) : notes.length === 0 && !addingNote ? (
-                <p className="plantdetail-notes-empty">No notes yet.</p>
+                <p className="plantdetail-notes-empty">{t('plantDetail.noNotesYet')}</p>
               ) : (
                 <div className="plantdetail-notes-list">
                   {notes.map((note) => {
@@ -928,14 +947,14 @@ export default function PlantDetail() {
                                 onClick={() => handleSaveEditNote(note.id)}
                                 disabled={savingEditNote || !editNoteText.trim()}
                               >
-                                <IconCheck size={16} /> Save
+                                <IconCheck size={16} /> {t('common.save')}
                               </button>
                               <button
                                 className="plantdetail-note-cancel-btn"
                                 onClick={() => setEditingNoteId(null)}
                                 disabled={savingEditNote}
                               >
-                                <IconX size={16} /> Cancel
+                                <IconX size={16} /> {t('common.cancel')}
                               </button>
                             </div>
                           </div>
@@ -945,7 +964,7 @@ export default function PlantDetail() {
                             <div className="plantdetail-note-footer">
                               <span className="plantdetail-note-date">
                                 {formatRelativeDay(displayDate)} · {formatTime(displayDate)}
-                                {wasEdited ? ' (edited)' : ''}
+                                {wasEdited ? t('plantDetail.edited') : ''}
                               </span>
                               <div className="plantdetail-note-actions">
                                 <button className="plantdetail-note-icon-btn" onClick={() => startEditNote(note)}>
@@ -970,10 +989,10 @@ export default function PlantDetail() {
 
             {plant.care_guide && Object.keys(plant.care_guide).length > 0 && (
               <div className="plantdetail-careguide">
-                <p className="plantdetail-careguide-title">🌿 More about this plant</p>
-                {CARE_GUIDE_META.filter(({ key }) => plant.care_guide[key]).map(({ key, emoji, label }) => (
+                <p className="plantdetail-careguide-title">{t('plantDetail.moreAboutPlant')}</p>
+                {CARE_GUIDE_META.filter(({ key }) => plant.care_guide[key]).map(({ key, emoji, labelKey }) => (
                   <div key={key} className="plantdetail-careguide-item">
-                    <p className="plantdetail-careguide-heading">{emoji} {label}</p>
+                    <p className="plantdetail-careguide-heading">{emoji} {t(labelKey)}</p>
                     <p className="plantdetail-careguide-text">{plant.care_guide[key]}</p>
                   </div>
                 ))}
@@ -983,40 +1002,40 @@ export default function PlantDetail() {
         )}
       </div>
 
-      <h3 className="plantdetail-section-title">Log care</h3>
+      <h3 className="plantdetail-section-title">{t('plantDetail.logCare')}</h3>
       <div className="plantdetail-careactions">
-        {CARE_ACTIONS.map(({ key, label, icon: Icon }) => {
+        {CARE_ACTIONS.map(({ key, icon: Icon }) => {
           const last = lastByAction[key]
           const doneToday = last && isToday(last.logged_at)
           const isLogging = loggingAction === key
           return (
             <button key={key} className={`plantdetail-careaction-btn ${doneToday ? 'is-done' : ''}`} onClick={() => handleLogCare(key)} disabled={doneToday || isLogging}>
               {doneToday ? <IconCheck size={22} /> : <Icon size={22} />}
-              <span className="plantdetail-careaction-label">{label}</span>
+              <span className="plantdetail-careaction-label">{t(`careActions.${key}`)}</span>
               <span className="plantdetail-careaction-sub">
-                {isLogging ? 'Logging...' : doneToday ? 'Done today' : last ? `Last: ${formatRelativeDay(last.logged_at)}` : 'Not logged yet'}
+                {isLogging ? t('plantDetail.logging') : doneToday ? t('plantDetail.doneToday') : last ? t('plantDetail.lastLogged', { when: formatRelativeDay(last.logged_at) }) : t('plantDetail.notLoggedYet')}
               </span>
             </button>
           )
         })}
         <button className="plantdetail-careaction-btn" onClick={() => setOtherModalOpen(true)}>
           <IconPlus size={22} />
-          <span className="plantdetail-careaction-label">Other</span>
-          <span className="plantdetail-careaction-sub">Log something else</span>
+          <span className="plantdetail-careaction-label">{t('plantDetail.other')}</span>
+          <span className="plantdetail-careaction-sub">{t('plantDetail.logSomethingElse')}</span>
         </button>
       </div>
       {logError && <p className="plantdetail-error">{logError}</p>}
 
       <button className="plantdetail-doctor-btn" onClick={() => navigate(`/plant/${id}/doctor`)}>
         <IconStethoscope size={20} />
-        Ask the Plant Doctor
+        {t('plantDetail.askDoctor')}
       </button>
 
       {otherModalOpen && (
         <div className="plantdetail-modal-overlay" onClick={() => setOtherModalOpen(false)}>
           <div className="plantdetail-modal" onClick={(e) => e.stopPropagation()}>
             <div className="plantdetail-modal-header">
-              <h3>Log an action</h3>
+              <h3>{t('plantDetail.logAnAction')}</h3>
               <button className="plantdetail-modal-close" onClick={() => setOtherModalOpen(false)}><IconX size={20} /></button>
             </div>
             <div className="plantdetail-chip-row">
@@ -1026,14 +1045,14 @@ export default function PlantDetail() {
                   className={`plantdetail-chip ${otherSelectedChip === chip ? 'is-selected' : ''}`}
                   onClick={() => { setOtherSelectedChip(chip); setOtherCustomText('') }}
                 >
-                  {chip}
+                  {t(CHIP_LABEL_KEYS[chip])}
                 </button>
               ))}
             </div>
             <input
               type="text"
               className="plantdetail-modal-input"
-              placeholder="Or type your own action..."
+              placeholder={t('plantDetail.customActionPlaceholder')}
               value={otherCustomText}
               onChange={(e) => { setOtherCustomText(e.target.value); setOtherSelectedChip(null) }}
             />
@@ -1044,7 +1063,7 @@ export default function PlantDetail() {
               onClick={handleLogOther}
               disabled={otherSaving || (!otherSelectedChip && !otherCustomText.trim())}
             >
-              <IconCheck size={18} />{otherSaving ? 'Saving...' : 'Save'}
+              <IconCheck size={18} />{otherSaving ? t('common.saving') : t('common.save')}
             </button>
           </div>
         </div>
@@ -1054,24 +1073,24 @@ export default function PlantDetail() {
         <div className="plantdetail-suggestion-banner">
           <p>{suggestionBanner.text}</p>
           <div className="plantdetail-suggestion-actions">
-            <button className="plantdetail-suggestion-yes" onClick={handleAcceptSuggestion}>Yes, Add Reminder</button>
-            <button className="plantdetail-suggestion-no" onClick={handleDismissSuggestion}>No thanks</button>
+            <button className="plantdetail-suggestion-yes" onClick={handleAcceptSuggestion}>{t('plantDetail.yesAddReminder')}</button>
+            <button className="plantdetail-suggestion-no" onClick={handleDismissSuggestion}>{t('addPlant.noThanks')}</button>
           </div>
         </div>
       )}
 
-      <h3 className="plantdetail-section-title">Reminders</h3>
-      {renderReminderCard('water', '💧 Water reminder')}
+      <h3 className="plantdetail-section-title">{t('reminders.title')}</h3>
+      {renderReminderCard('water', t('plantDetail.waterReminder'))}
       <div style={{ height: 12 }} />
-      {renderReminderCard('custom', '⏰ Custom reminder')}
+      {renderReminderCard('custom', t('plantDetail.customReminder'))}
 
       <div className="plantdetail-activity">
         <div className="plantdetail-activity-header">
-          <h3>Recent activity</h3>
-          <button className="plantdetail-activity-seeall" onClick={() => navigate(`/plant/${id}/history`)}>See all <IconChevronRight size={16} /></button>
+          <h3>{t('plantDetail.recentActivity')}</h3>
+          <button className="plantdetail-activity-seeall" onClick={() => navigate(`/plant/${id}/history`)}>{t('plantDetail.seeAll')} <IconChevronRight size={16} /></button>
         </div>
-        {logsLoading ? <p className="plantdetail-activity-empty">Loading...</p>
-          : logs.length === 0 ? <p className="plantdetail-activity-empty">No activity logged yet.</p>
+        {logsLoading ? <p className="plantdetail-activity-empty">{t('common.loading')}</p>
+          : logs.length === 0 ? <p className="plantdetail-activity-empty">{t('plantDetail.noActivityYet')}</p>
           : (
             <div className="plantdetail-activity-list">
               {logs.slice(0, 5).map((log) => {
@@ -1081,6 +1100,7 @@ export default function PlantDetail() {
                 const meta = !isCustom ? CARE_ACTIONS.find((a) => a.key === log.action) : null
                 const Icon = meta?.icon
                 const isExpanded = expandedLogId === log.id
+                const label = isCustom ? (log.custom_action || t('plantDetail.other')) : t(`careActions.${log.action}`)
                 return (
                   <div key={log.id}>
                     <div
@@ -1088,14 +1108,14 @@ export default function PlantDetail() {
                       onClick={doctorNote ? () => setExpandedLogId(isExpanded ? null : log.id) : undefined}
                     >
                       <span className="plantdetail-activity-icon">{isDoctor ? '🩺' : isCustom ? '📌' : <Icon size={16} />}</span>
-                      <span className="plantdetail-activity-label">{isCustom ? (log.custom_action || 'Other') : meta.label}</span>
+                      <span className="plantdetail-activity-label">{label}</span>
                       <span className="plantdetail-activity-time">{formatRelativeDay(log.logged_at)} · {formatTime(log.logged_at)}</span>
                     </div>
                     {isExpanded && doctorNote && (
                       <div className="plantdetail-activity-detail">
                         <p className="plantdetail-activity-detail-text">{doctorNote.content}</p>
                         <button className="plantdetail-activity-detail-delete" onClick={() => handleDeleteDoctorNote(log.id)}>
-                          <IconTrash size={14} /> Delete diagnosis
+                          <IconTrash size={14} /> {t('plantDetail.deleteDiagnosis')}
                         </button>
                       </div>
                     )}

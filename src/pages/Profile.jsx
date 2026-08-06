@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
+import { setLanguage } from '../i18n'
 import {
   IconUserCircle, IconPencil, IconCheck, IconX, IconLogout, IconBell,
   IconChevronRight, IconShare, IconCopy, IconBrandWhatsapp, IconBrandX,
+  IconLanguage,
 } from "@tabler/icons-react"
 import BottomNav from '../components/BottomNav'
 import './Profile.css'
@@ -24,13 +27,14 @@ const AVATARS = [
   { id: 'tech', src: techAvatar },
 ]
 
+const LANGUAGES = [
+  { code: 'en', labelKey: 'profile.languageEnglish' },
+  { code: 'cs', labelKey: 'profile.languageCzech' },
+  { code: 'es', labelKey: 'profile.languageSpanish' },
+]
+
 const APP_URL = 'https://bloommateapp.netlify.app'
 const SHARE_TEXT = "I'm growing my plant collection with BloomMate 🌱 Come check it out!"
-
-function formatMemberSince(dateString) {
-  const date = new Date(dateString)
-  return date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
-}
 
 function avatarSrcFor(avatarId) {
   return AVATARS.find((a) => a.id === avatarId)?.src || null
@@ -38,6 +42,7 @@ function avatarSrcFor(avatarId) {
 
 export default function Profile({ session }) {
   const navigate = useNavigate()
+  const { t, i18n } = useTranslation()
   const [displayName, setDisplayName] = useState('')
   const [editingName, setEditingName] = useState(false)
   const [nameInput, setNameInput] = useState('')
@@ -51,12 +56,18 @@ export default function Profile({ session }) {
 
   const [shareFallbackOpen, setShareFallbackOpen] = useState(false)
   const [copyMessage, setCopyMessage] = useState(null)
+  const [savingLanguage, setSavingLanguage] = useState(false)
 
   useEffect(() => {
     const metaName = session.user.user_metadata?.display_name
     setDisplayName(metaName || session.user.email.split('@')[0])
     setAvatarId(session.user.user_metadata?.avatar_id || null)
   }, [session])
+
+  function formatMemberSince(dateString) {
+    const date = new Date(dateString)
+    return date.toLocaleDateString(i18n.language, { month: 'long', year: 'numeric' })
+  }
 
   function startEditName() {
     setNameInput(displayName)
@@ -77,7 +88,7 @@ export default function Profile({ session }) {
       setDisplayName(nameInput.trim())
       setEditingName(false)
     } catch (err) {
-      setNameError('Could not save your name. Please try again.')
+      setNameError(t('profile.couldNotSaveName'))
     } finally {
       setSavingName(false)
     }
@@ -96,6 +107,20 @@ export default function Profile({ session }) {
       // keep the picker open so they can retry
     } finally {
       setSavingAvatar(false)
+    }
+  }
+
+  async function handleSelectLanguage(code) {
+    if (code === i18n.language) return
+    setSavingLanguage(true)
+    setLanguage(code) // updates the UI immediately
+    try {
+      await supabase.auth.updateUser({ data: { language: code } })
+    } catch (err) {
+      // language still applied locally even if the account save fails
+      console.error('Could not save language preference:', err)
+    } finally {
+      setSavingLanguage(false)
     }
   }
 
@@ -120,9 +145,9 @@ export default function Profile({ session }) {
   async function handleCopyLink() {
     try {
       await navigator.clipboard.writeText(APP_URL)
-      setCopyMessage('Link copied!')
+      setCopyMessage(t('profile.linkCopied'))
     } catch (err) {
-      setCopyMessage('Could not copy link.')
+      setCopyMessage(t('profile.couldNotCopy'))
     } finally {
       setTimeout(() => setCopyMessage(null), 2500)
     }
@@ -136,8 +161,8 @@ export default function Profile({ session }) {
     <div className="page">
       <header className="app-header">
         <div>
-          <p className="header-greeting">Account</p>
-          <h2>Profile</h2>
+          <p className="header-greeting">{t('profile.account')}</p>
+          <h2>{t('profile.title')}</h2>
         </div>
       </header>
 
@@ -149,7 +174,7 @@ export default function Profile({ session }) {
               : <IconUserCircle size={56} />}
           </div>
           <button className="profile-avatar-change-btn" onClick={() => setAvatarPickerOpen(true)}>
-            Change
+            {t('profile.change')}
           </button>
 
           {editingName ? (
@@ -158,7 +183,7 @@ export default function Profile({ session }) {
                 type="text"
                 value={nameInput}
                 onChange={(e) => setNameInput(e.target.value)}
-                placeholder="Your name"
+                placeholder={t('profile.namePlaceholder')}
                 autoFocus
               />
               <button type="submit" className="profile-name-btn profile-name-btn-confirm" disabled={savingName}>
@@ -178,25 +203,43 @@ export default function Profile({ session }) {
           )}
           {nameError && <p className="profile-error">{nameError}</p>}
           <p className="profile-email">{session.user.email}</p>
-          <p className="profile-since">🌱 Blooming since {formatMemberSince(session.user.created_at)}</p>
+          <p className="profile-since">{t('profile.bloomingSince', { date: formatMemberSince(session.user.created_at) })}</p>
         </div>
 
         <div className="profile-section">
-          <p className="profile-section-title">Notifications</p>
+          <p className="profile-section-title">{t('profile.notificationsSection')}</p>
           <button className="profile-card profile-link-row" onClick={() => navigate('/reminders')}>
             <div className="profile-row-label">
               <IconBell size={20} />
-              <span>Reminders</span>
+              <span>{t('profile.reminders')}</span>
             </div>
             <IconChevronRight size={18} />
           </button>
         </div>
 
         <div className="profile-section">
-          <p className="profile-section-title">Spread the word</p>
+          <p className="profile-section-title">{t('profile.languageSection')}</p>
+          <div className="profile-language-options">
+            {LANGUAGES.map((lang) => (
+              <button
+                key={lang.code}
+                className={`profile-language-option ${i18n.language === lang.code ? 'is-selected' : ''}`}
+                onClick={() => handleSelectLanguage(lang.code)}
+                disabled={savingLanguage}
+              >
+                <IconLanguage size={16} />
+                {t(lang.labelKey)}
+                {i18n.language === lang.code && <IconCheck size={16} />}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="profile-section">
+          <p className="profile-section-title">{t('profile.shareSection')}</p>
           <button className="profile-share-btn" onClick={handleShare}>
             <IconShare size={18} />
-            Share BloomMate
+            {t('profile.shareBtn')}
           </button>
           {copyMessage && <p className="profile-copy-message">{copyMessage}</p>}
         </div>
@@ -204,7 +247,7 @@ export default function Profile({ session }) {
         <div className="profile-section">
           <button className="profile-signout-btn" onClick={handleSignOut} disabled={signingOut}>
             <IconLogout size={18} />
-            {signingOut ? 'Signing out...' : 'Sign out'}
+            {signingOut ? t('profile.signingOut') : t('profile.signOut')}
           </button>
         </div>
       </main>
@@ -213,7 +256,7 @@ export default function Profile({ session }) {
         <div className="profile-modal-overlay" onClick={() => setAvatarPickerOpen(false)}>
           <div className="profile-modal" onClick={(e) => e.stopPropagation()}>
             <div className="profile-modal-header">
-              <h3>Choose your avatar</h3>
+              <h3>{t('profile.chooseAvatar')}</h3>
               <button className="profile-modal-close" onClick={() => setAvatarPickerOpen(false)}><IconX size={20} /></button>
             </div>
             <div className="profile-avatar-grid">
@@ -236,18 +279,18 @@ export default function Profile({ session }) {
         <div className="profile-modal-overlay" onClick={() => setShareFallbackOpen(false)}>
           <div className="profile-modal" onClick={(e) => e.stopPropagation()}>
             <div className="profile-modal-header">
-              <h3>Share BloomMate</h3>
+              <h3>{t('profile.shareModalTitle')}</h3>
               <button className="profile-modal-close" onClick={() => setShareFallbackOpen(false)}><IconX size={20} /></button>
             </div>
             <div className="profile-share-options">
               <a className="profile-share-option" href={whatsappUrl} target="_blank" rel="noopener noreferrer">
-                <IconBrandWhatsapp size={20} /> WhatsApp
+                <IconBrandWhatsapp size={20} /> {t('profile.whatsapp')}
               </a>
               <a className="profile-share-option" href={xUrl} target="_blank" rel="noopener noreferrer">
                 <IconBrandX size={20} /> X
               </a>
               <button className="profile-share-option" onClick={handleCopyLink}>
-                <IconCopy size={20} /> Copy link
+                <IconCopy size={20} /> {t('profile.copyLink')}
               </button>
             </div>
             {copyMessage && <p className="profile-copy-message">{copyMessage}</p>}

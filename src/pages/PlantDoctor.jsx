@@ -1,17 +1,18 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { IconArrowLeft, IconStethoscope, IconCamera, IconX, IconCheck } from '@tabler/icons-react'
 import { supabase } from '../lib/supabase'
 import { getLocalDateString } from '../lib/dateUtils'
 import thinkingMascot from '../assets/mascot/thinking.png'
 import './PlantDoctor.css'
 
-const SEVERITY_META = {
-  healthy: { emoji: '🟢', label: 'Looks healthy' },
-  mild: { emoji: '🟡', label: 'Mild concern' },
-  moderate: { emoji: '🟠', label: 'Moderate concern' },
-  urgent: { emoji: '🔴', label: 'Needs attention' },
-  unknown: { emoji: '⚪', label: 'Unclear' },
+const SEVERITY_EMOJI = {
+  healthy: '🟢',
+  mild: '🟡',
+  moderate: '🟠',
+  urgent: '🔴',
+  unknown: '⚪',
 }
 
 // Resizes an image file before sending it to the AI, to keep uploads fast
@@ -42,21 +43,24 @@ function resizeImageToBase64(file, maxDim = 1024, quality = 0.8) {
   })
 }
 
-function formatNoteContent(d) {
-  const severityLabel = SEVERITY_META[d.severity]?.label || 'Diagnosis'
-  let text = `🩺 Plant Doctor — ${severityLabel}\n\n${d.diagnosis}`
-  if (d.likely_causes?.length) {
-    text += `\n\nLikely causes:\n` + d.likely_causes.map((c) => `• ${c}`).join('\n')
-  }
-  if (d.recommended_actions?.length) {
-    text += `\n\nRecommended actions:\n` + d.recommended_actions.map((a) => `• ${a}`).join('\n')
-  }
-  return text
-}
-
 export default function PlantDoctor() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { t } = useTranslation()
+
+  const severityLabel = (key) => t(`plantDoctor.severity.${key}`, t('plantDoctor.severity.fallback'))
+
+  function formatNoteContent(d) {
+    const label = SEVERITY_EMOJI[d.severity] ? severityLabel(d.severity) : t('plantDoctor.severity.fallback')
+    let text = `${t('plantDoctor.noteHeading')} — ${label}\n\n${d.diagnosis}`
+    if (d.likely_causes?.length) {
+      text += `\n\n${t('plantDoctor.noteLikelyCauses')}\n` + d.likely_causes.map((c) => `• ${c}`).join('\n')
+    }
+    if (d.recommended_actions?.length) {
+      text += `\n\n${t('plantDoctor.noteRecommendedActions')}\n` + d.recommended_actions.map((a) => `• ${a}`).join('\n')
+    }
+    return text
+  }
 
   const [plant, setPlant] = useState(null)
   const [recentLogs, setRecentLogs] = useState([])
@@ -100,7 +104,7 @@ export default function PlantDoctor() {
       setPhotoPreview(dataUrl)
       setPhotoBase64(dataUrl.split(',')[1])
     } catch (err) {
-      setAskError('Could not read that photo. Please try another.')
+      setAskError(t('plantDoctor.photoReadError'))
     }
   }
 
@@ -168,7 +172,7 @@ export default function PlantDoctor() {
       await saveAsNoteAndLog(data)
     } catch (err) {
       console.error('Plant doctor error:', err)
-      setAskError('Could not get a diagnosis. Please try again.')
+      setAskError(t('plantDoctor.askError'))
     } finally {
       setAsking(false)
     }
@@ -187,9 +191,9 @@ export default function PlantDoctor() {
       <div className="doctor-page">
         <div className="doctor-header">
           <button className="doctor-back" onClick={() => navigate(-1)}><IconArrowLeft size={22} /></button>
-          <h1>Plant Doctor</h1>
+          <h1>{t('plantDoctor.title')}</h1>
         </div>
-        <p className="doctor-loading">Loading...</p>
+        <p className="doctor-loading">{t('plantDoctor.loading')}</p>
       </div>
     )
   }
@@ -200,27 +204,27 @@ export default function PlantDoctor() {
     <div className="doctor-page">
       <div className="doctor-header">
         <button className="doctor-back" onClick={() => navigate(-1)}><IconArrowLeft size={22} /></button>
-        <h1>Plant Doctor</h1>
+        <h1>{t('plantDoctor.title')}</h1>
       </div>
 
       {!result && (
         <>
           <div className="doctor-intro">
             <IconStethoscope size={22} />
-            <p>I'll use {plant.nickname}'s info and recent care history to help figure out what's going on. Add a photo, a description, or both.</p>
+            <p>{t('plantDoctor.intro', { name: plant.nickname })}</p>
           </div>
 
           <div className="doctor-photo-section">
             {!photoPreview ? (
               <button className="doctor-photo-upload" onClick={() => fileInputRef.current?.click()}>
                 <IconCamera size={26} />
-                <span>Add a photo (optional)</span>
+                <span>{t('plantDoctor.addPhoto')}</span>
               </button>
             ) : (
               <div className="doctor-photo-preview-wrap">
                 <img src={photoPreview} alt="Plant symptom" className="doctor-photo-preview" />
                 <button className="doctor-photo-remove" onClick={removePhoto}>
-                  <IconX size={16} /> Remove photo
+                  <IconX size={16} /> {t('plantDoctor.removePhoto')}
                 </button>
               </div>
             )}
@@ -234,10 +238,10 @@ export default function PlantDoctor() {
           </div>
 
           <label className="doctor-description-label">
-            Describe what you're seeing (optional)
+            {t('plantDoctor.descriptionLabel')}
             <textarea
               className="doctor-description-input"
-              placeholder="e.g. yellow leaves near the bottom, drooping stems, brown spots..."
+              placeholder={t('plantDoctor.descriptionPlaceholder')}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
@@ -248,7 +252,7 @@ export default function PlantDoctor() {
           {asking ? (
             <div className="doctor-loading-row">
               <img src={thinkingMascot} alt="BloomMate thinking" className="doctor-mascot-small" />
-              <p>Examining {plant.nickname}...</p>
+              <p>{t('plantDoctor.examining', { name: plant.nickname })}</p>
             </div>
           ) : (
             <button
@@ -256,7 +260,7 @@ export default function PlantDoctor() {
               onClick={handleAsk}
               disabled={!photoBase64 && !description.trim()}
             >
-              <IconStethoscope size={18} /> Ask the Doctor
+              <IconStethoscope size={18} /> {t('plantDoctor.askBtn')}
             </button>
           )}
         </>
@@ -265,18 +269,18 @@ export default function PlantDoctor() {
       {result && (
         <div className="doctor-result">
           <div className={`doctor-severity-badge severity-${result.severity}`}>
-            {SEVERITY_META[result.severity]?.emoji || '⚪'} {SEVERITY_META[result.severity]?.label || 'Diagnosis'}
+            {SEVERITY_EMOJI[result.severity] || '⚪'} {severityLabel(result.severity)}
           </div>
 
           <p className="doctor-diagnosis-text">{result.diagnosis}</p>
 
           <p className="doctor-disclaimer">
-            🤖 AI guidance isn't always accurate — for serious or ongoing issues, consider checking with a local nursery or plant expert.
+            {t('plantDoctor.aiDisclaimer')}
           </p>
 
           {result.likely_causes?.length > 0 && (
             <div className="doctor-result-section">
-              <p className="doctor-result-heading">Likely causes</p>
+              <p className="doctor-result-heading">{t('plantDoctor.likelyCauses')}</p>
               <ul className="doctor-result-list">
                 {result.likely_causes.map((c, i) => <li key={i}>{c}</li>)}
               </ul>
@@ -285,7 +289,7 @@ export default function PlantDoctor() {
 
           {result.recommended_actions?.length > 0 && (
             <div className="doctor-result-section">
-              <p className="doctor-result-heading">Recommended actions</p>
+              <p className="doctor-result-heading">{t('plantDoctor.recommendedActions')}</p>
               <ul className="doctor-result-list">
                 {result.recommended_actions.map((a, i) => <li key={i}>{a}</li>)}
               </ul>
@@ -293,10 +297,10 @@ export default function PlantDoctor() {
           )}
 
           {saved && (
-            <p className="doctor-saved-msg"><IconCheck size={16} /> Saved to {plant.nickname}'s Recent Activity &amp; History</p>
+            <p className="doctor-saved-msg"><IconCheck size={16} /> {t('plantDoctor.savedMsg', { name: plant.nickname })}</p>
           )}
 
-          <button className="doctor-ask-btn" onClick={askAnother}>Ask another question</button>
+          <button className="doctor-ask-btn" onClick={askAnother}>{t('plantDoctor.askAnother')}</button>
         </div>
       )}
     </div>

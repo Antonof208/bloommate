@@ -1,0 +1,133 @@
+.careh-page {
+  padding: 20px;
+  padding-bottom: 100px;
+  font-family: 'Nunito', sans-serif;
+}
+
+.careh-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.careh-back {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--green-dark);
+  display: flex;
+  flex-shrink: 0;
+}
+
+.careh-header h1 {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--green-dark);
+}
+
+.careh-empty {
+  text-align: center;
+  color: #888;
+  margin-top: 40px;
+}
+
+.careh-group {
+  margin-bottom: 18px;
+}
+
+.careh-group-label {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.careh-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  border: 2px solid #E5F5EA;
+  border-radius: 14px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.careh-row-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: #E5F5EA;
+  color: var(--green-dark);
+  flex-shrink: 0;
+}
+
+.careh-row-label {
+  font-weight: 700;
+  color: #1A1A1A;
+  font-size: 0.9rem;
+  flex: 1;
+}
+
+.careh-row-time {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.careh-photo-card { display: flex; gap: 10px; background: white; border: 2px solid #E5F5EA; border-radius: 14px; padding: 10px; margin-bottom: 8px; }
+.careh-photo-img { width: 64px; height: 64px; border-radius: 10px; object-fit: cover; flex-shrink: 0; }
+.careh-photo-info { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.careh-photo-toprow { display: flex; align-items: center; justify-content: space-between; }
+.careh-photo-badge { display: flex; align-items: center; gap: 3px; background: #FFF6DD; color: #B8860B; font-size: 0.7rem; font-weight: 800; border-radius: 8px; padding: 2px 8px; }
+.careh-photo-time { font-size: 0.78rem; color: #888; }
+.careh-photo-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.careh-photo-action-btn { display: flex; align-items: center; gap: 4px; background: #E5F5EA; color: var(--green-dark); border: none; border-radius: 8px; padding: 6px 10px; font-size: 0.75rem; font-weight: 700; font-family: inherit; cursor: pointer; }
+.careh-photo-action-danger { background: #FDEAEA; color: #E5484D; }
+.careh-photo-confirm { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 700; color: #1A1A1A; flex-wrap: wrap; }
+.careh-photo-confirm-yes, .careh-photo-confirm-no { border: none; border-radius: 8px; padding: 5px 10px; font-size: 0.75rem; font-weight: 800; cursor: pointer; font-family: inherit; }
+.careh-photo-confirm-yes { background: #E5484D; color: white; }
+.careh-photo-confirm-no { background: #F0F0F0; color: #555; }
+
+.careh-row.is-clickable {
+  cursor: pointer;
+}
+
+.careh-row.is-clickable:hover {
+  opacity: 0.8;
+}
+
+.careh-doctor-detail {
+  background: #FAFCFB;
+  border: 1.5px solid #E5F5EA;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin: -4px 0 8px;
+}
+
+.careh-doctor-detail-text {
+  font-size: 0.85rem;
+  color: #333;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  margin-bottom: 10px;
+}
+
+.careh-doctor-detail-delete {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  color: #E5484D;
+  font-weight: 700;
+  font-size: 0.8rem;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+}

@@ -1,3 +1,5 @@
+import i18n from '../i18n'
+
 function startOfDay(date) {
   const d = new Date(date)
   d.setHours(0, 0, 0, 0)
@@ -15,17 +17,17 @@ export function isYesterday(dateString) {
 }
 
 export function formatRelativeDay(dateString) {
-  if (isToday(dateString)) return 'Today'
-  if (isYesterday(dateString)) return 'Yesterday'
+  if (isToday(dateString)) return i18n.t('dateUtils.today')
+  if (isYesterday(dateString)) return i18n.t('dateUtils.yesterday')
 
   const diffDays = Math.round((startOfDay(new Date()) - startOfDay(dateString)) / 86400000)
-  if (diffDays < 7) return `${diffDays} days ago`
+  if (diffDays < 7) return i18n.t('dateUtils.daysAgo', { count: diffDays })
 
-  return new Date(dateString).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  return new Date(dateString).toLocaleDateString(i18n.language, { month: 'short', day: 'numeric' })
 }
 
 export function formatTime(dateString) {
-  return new Date(dateString).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+  return new Date(dateString).toLocaleTimeString(i18n.language, { hour: 'numeric', minute: '2-digit' })
 }
 
 export function getLocalDateString(date = new Date()) {

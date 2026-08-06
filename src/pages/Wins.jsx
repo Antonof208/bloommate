@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { IconFlame, IconChevronLeft, IconChevronRight, IconLock } from '@tabler/icons-react'
 import { supabase } from '../lib/supabase'
 import { getLocalDateString } from '../lib/dateUtils'
@@ -6,10 +7,10 @@ import { ACHIEVEMENTS, checkAndUnlockAchievements } from '../lib/achievements'
 import BottomNav from '../components/BottomNav'
 import './Wins.css'
 
-const DAY_HEADERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December']
-
 export default function Wins({ session }) {
+  const { t } = useTranslation()
+  const DAY_HEADERS = t('dayHeaders', { returnObjects: true })
+  const MONTH_NAMES = t('months', { returnObjects: true })
   const [unlockedKeys, setUnlockedKeys] = useState(new Set())
   const [streak, setStreak] = useState(null)
   const [careDays, setCareDays] = useState(new Set())
@@ -93,7 +94,7 @@ export default function Wins({ session }) {
 
   if (loading) return (
     <div className="page">
-      <div className="wins-loading">Loading your wins...</div>
+      <div className="wins-loading">{t('wins.loading')}</div>
       <BottomNav active="wins" />
     </div>
   )
@@ -101,7 +102,7 @@ export default function Wins({ session }) {
   return (
     <div className="page">
       <header className="app-header">
-        <h2>Wins 🏆</h2>
+        <h2>{t('wins.title')}</h2>
       </header>
 
       <main className="content">
@@ -111,8 +112,8 @@ export default function Wins({ session }) {
           <div className="wins-streak-left">
             <span className="wins-streak-number">{streak?.current_streak || 0}</span>
             <div>
-              <p className="wins-streak-label">day streak</p>
-              <p className="wins-streak-best">Best: {streak?.longest_streak || 0} days</p>
+              <p className="wins-streak-label">{t('wins.dayStreak')}</p>
+              <p className="wins-streak-best">{t('wins.best', { count: streak?.longest_streak || 0 })}</p>
             </div>
           </div>
           <IconFlame size={52} className="wins-streak-flame" />
@@ -146,24 +147,26 @@ export default function Wins({ session }) {
         </div>
 
         {/* Achievements */}
-        <h3 className="wins-section-title">Achievements</h3>
-        <p className="wins-section-sub">{unlockedKeys.size} of {ACHIEVEMENTS.length} unlocked</p>
+        <h3 className="wins-section-title">{t('wins.achievements')}</h3>
+        <p className="wins-section-sub">{t('wins.unlockedOf', { unlocked: unlockedKeys.size, total: ACHIEVEMENTS.length })}</p>
 
         <div className="wins-achievements-grid">
           {ACHIEVEMENTS.map(a => {
             const unlocked = unlockedKeys.has(a.key)
+            const name = t(`achievements.${a.key}.name`)
+            const description = t(`achievements.${a.key}.description`)
             return (
               <div key={a.key} className={`wins-badge ${!unlocked ? 'is-locked' : ''}`}>
                 <div className="wins-badge-img-wrap">
-                  <img src={a.image} alt={a.name} className="wins-badge-img" />
+                  <img src={a.image} alt={name} className="wins-badge-img" />
                   {!unlocked && (
                     <div className="wins-badge-lock-overlay">
                       <IconLock size={22} color="white" />
                     </div>
                   )}
                 </div>
-                <p className="wins-badge-name">{a.name}</p>
-                <p className="wins-badge-desc">{a.description}</p>
+                <p className="wins-badge-name">{name}</p>
+                <p className="wins-badge-desc">{description}</p>
               </div>
             )
           })}
@@ -176,10 +179,10 @@ export default function Wins({ session }) {
       {/* Toast */}
       {toastAchievement && (
         <div className={`achievement-toast ${toastVisible ? 'is-visible' : ''}`}>
-          <img src={toastAchievement.image} alt={toastAchievement.name} className="achievement-toast-img" />
+          <img src={toastAchievement.image} alt={t(`achievements.${toastAchievement.key}.name`)} className="achievement-toast-img" />
           <div>
-            <p className="achievement-toast-label">Achievement unlocked! 🎉</p>
-            <p className="achievement-toast-name">{toastAchievement.name}</p>
+            <p className="achievement-toast-label">{t('wins.achievementUnlocked')}</p>
+            <p className="achievement-toast-name">{t(`achievements.${toastAchievement.key}.name`)}</p>
           </div>
         </div>
       )}

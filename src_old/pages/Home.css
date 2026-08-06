@@ -1,0 +1,174 @@
+.home-loading,
+.home-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 60px 20px;
+  text-align: center;
+  color: #888;
+}
+
+.plant-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.plant-card {
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border: 2px solid #E5F5EA;
+  border-radius: 18px;
+  overflow: hidden;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  width: 100%;
+  transition: border-color 0.15s ease, transform 0.1s ease;
+}
+
+.plant-card:hover {
+  border-color: var(--green);
+  transform: translateY(-2px);
+}
+
+.plant-card-image {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+}
+
+.plant-card-noimg {
+  width: 100%;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  background: var(--bg-light, #F0FDF4);
+}
+
+.plant-card-info {
+  padding: 10px 12px 14px;
+}
+
+.plant-card-name {
+  font-weight: 800;
+  color: #1A1A1A;
+  font-size: 0.95rem;
+  margin-bottom: 2px;
+}
+
+.plant-card-meta {
+  font-size: 0.8rem;
+  color: #777;
+}
+
+.home-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.streak-badge {
+  display: flex; align-items: center; gap: 4px; background: #FFF1EB;
+  color: var(--orange); border-radius: 14px; padding: 6px 10px; font-weight: 800; font-size: 0.9rem;
+  border: none; font-family: inherit; cursor: pointer;
+}
+
+.streak-badge.is-zero {
+  background: #F0F0F0;
+  color: #999;
+}
+
+.streak-flame {
+  color: inherit;
+}
+
+.freeze-badge {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: #EAF6FF;
+  color: #3B9EDB;
+  border-radius: 14px;
+  padding: 6px 8px;
+  font-weight: 800;
+  font-size: 0.85rem;
+}
+
+.btn-icon.is-active {
+  color: var(--green);
+}
+
+.home-push-message {
+  text-align: center;
+  font-weight: 700;
+  color: var(--green-dark);
+  font-size: 0.85rem;
+  margin-bottom: 8px;
+}
+
+.plant-card-tap {
+  cursor: pointer;
+}
+
+.plant-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px 12px;
+}
+
+.plant-card-water-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: #EAF6FF;
+  color: #3B9EDB;
+  border: none;
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-weight: 800;
+  font-size: 0.8rem;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #C7E8FA;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.plant-card-water-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #C7E8FA;
+}
+
+.plant-card-water-btn.is-done {
+  background: #E5F5EA;
+  color: var(--green-dark);
+  box-shadow: none;
+  cursor: default;
+}
+
+.plant-card-water-btn:disabled {
+  cursor: default;
+}
+
+.plant-card-info-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #F0F0F0;
+  color: #777;
+  border: none;
+  cursor: pointer;
+}

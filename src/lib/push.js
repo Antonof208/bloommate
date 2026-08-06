@@ -14,14 +14,21 @@ export async function registerServiceWorker() {
   return navigator.serviceWorker.register('/sw.js')
 }
 
+// Throws an Error whose `.code` is a stable, translatable identifier —
+// callers (Reminders.jsx / PlantDetail.jsx) map it to a localized message
+// rather than showing this file's (English) `.message` directly.
 export async function subscribeToPush(userId) {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    throw new Error('Notifications are not supported on this browser.')
+    const err = new Error('Notifications are not supported on this browser.')
+    err.code = 'not_supported'
+    throw err
   }
 
   const permission = await Notification.requestPermission()
   if (permission !== 'granted') {
-    throw new Error('Notification permission was not granted.')
+    const err = new Error('Notification permission was not granted.')
+    err.code = 'permission_denied'
+    throw err
   }
 
   const registration = await navigator.serviceWorker.ready
