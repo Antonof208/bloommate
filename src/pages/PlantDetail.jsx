@@ -876,10 +876,10 @@ export default function PlantDetail() {
               <strong>{t('plantDetail.labelPruningAdvice')}</strong> {pruningFriendly || t('common.notAddedYet')}
             </div>
             <div className="plantdetail-accordion-item">
-              <strong>{t('plantDetail.labelCycle')}</strong> {plant.cycle || t('common.notAddedYet')}
+              <strong>{t('plantDetail.labelCycle')}</strong> {labelFor(CYCLE_OPTIONS, plant.cycle, t) || t('common.notAddedYet')}
             </div>
             <div className="plantdetail-accordion-item">
-              <strong>{t('plantDetail.labelCareLevel')}</strong> {plant.care_level || t('common.notAddedYet')}
+              <strong>{t('plantDetail.labelCareLevel')}</strong> {diffBadge ? diffBadge.label : t('common.notAddedYet')}
             </div>
             <div className="plantdetail-accordion-item">
               <strong>{t('plantDetail.labelToxicPets')}</strong> {toxBadge ? `${toxBadge.emoji} ${toxBadge.label}` : t('common.notAddedYet')}

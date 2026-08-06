@@ -100,7 +100,7 @@
     "couldNotSave": "No se pudo guardar tu planta. Inténtalo de nuevo.",
     "plantAdded": "¡{{name}} añadida! 🌱",
     "reminderModalTitle": "💧 ¿Configurar un recordatorio de riego?",
-    "reminderModalBody": "Según las necesidades de {{name}}, sugerimos regar cada {{days}} día. ¿Quieres activar un recordatorio ahora? Siempre puedes cambiarlo después.",
+    "reminderModalBody": "Según las necesidades de {{name}}, sugerimos regar todos los días. ¿Quieres activar un recordatorio ahora? Siempre puedes cambiarlo después.",
     "reminderModalBody_other": "Según las necesidades de {{name}}, sugerimos regar cada {{days}} días. ¿Quieres activar un recordatorio ahora? Siempre puedes cambiarlo después.",
     "yesRemindMe": "Sí, recuérdamelo",
     "noThanks": "No, gracias",
@@ -192,12 +192,12 @@
   "careActions": {
     "water": "Regar",
     "fertilize": "Abonar",
-    "cut": "Cortar"
+    "cut": "Podar"
   },
   "actionMeta": {
     "water": "Regada",
     "fertilize": "Abonada",
-    "cut": "Cortada / podada",
+    "cut": "Podada",
     "custom": "Otro"
   },
   "careHistory": {
@@ -226,7 +226,7 @@
     "collector": { "name": "Coleccionista", "description": "Ten 5 plantas" },
     "jungle-mode": { "name": "Modo jungla", "description": "Ten 10 plantas" },
     "first-drop": { "name": "Primera gota", "description": "Registra tu primer riego" },
-    "snip-snip": { "name": "Tijeretazo", "description": "Registra tu primer corte" },
+    "snip-snip": { "name": "Tijeretazo", "description": "Registra tu primera poda" },
     "diligent": { "name": "Aplicado", "description": "Registra 20 acciones de cuidado" },
     "early-bird": { "name": "Madrugador", "description": "Registra un cuidado antes de las 7am" },
     "night-owl": { "name": "Ave nocturna", "description": "Registra un cuidado después de las 22h" },
